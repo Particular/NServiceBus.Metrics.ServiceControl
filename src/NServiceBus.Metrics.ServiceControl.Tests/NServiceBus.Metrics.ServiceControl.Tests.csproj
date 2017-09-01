@@ -9,4 +9,14 @@
     <PackageReference Include="NUnit" Version="3.8.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\NServiceBus.Metrics.ServiceControl\NServiceBus.Metrics.ServiceControl.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp">
+      <HintPath>..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\Microsoft.CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

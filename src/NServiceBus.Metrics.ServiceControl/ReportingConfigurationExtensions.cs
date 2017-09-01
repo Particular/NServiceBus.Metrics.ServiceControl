@@ -13,7 +13,7 @@
         /// </summary>
         /// <param name="settings">The settings to enable the reporting feature on.</param>
         /// <returns>An object containing configuration options for the reporting feature.</returns>
-        public static ReportingOptions EnableMetrics(this SettingsHolder settings)
+        public static ReportingOptions EnableReporting(this SettingsHolder settings)
         {
             if (settings.TryGet<ReportingOptions>(out var options) == false)
             {
@@ -30,9 +30,9 @@
         /// </summary>
         /// <param name="endpointConfiguration">The endpoint configuration to enable the reporting feature on.</param>
         /// <returns>An object containing configuration options for the reporting feature.</returns>
-        public static ReportingOptions EnableMetrics(this BusConfiguration endpointConfiguration)
+        public static ReportingOptions EnableReporting(this BusConfiguration endpointConfiguration)
         {
-            return EnableMetrics(endpointConfiguration.GetSettings());
+            return EnableReporting(endpointConfiguration.GetSettings());
         }
     }
 }
