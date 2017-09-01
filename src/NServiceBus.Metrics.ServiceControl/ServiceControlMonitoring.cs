@@ -18,13 +18,14 @@
 
         public ServiceControlMonitoring()
         {
-            Prerequisite(c => c.Settings.HasSetting<MetricsOptions>(), "Metrics should be configured");
+            EnableByDefault();
+            Prerequisite(c => c.Settings.HasSetting<ReportingOptions>(), "Metrics should be configured");
         }
 
         protected override void Setup(FeatureConfigurationContext context)
         {
             var buffers = new Buffers();
-            var options = context.Settings.Get<MetricsOptions>();
+            var options = context.Settings.Get<ReportingOptions>();
             var container = context.Container;
 
             container.ConfigureComponent(() => options, DependencyLifecycle.SingleInstance);
@@ -74,10 +75,10 @@
             readonly Buffers buffers;
             readonly ISendMessages dispatcher;
             readonly Dictionary<string, string> headers;
-            readonly MetricsOptions options;
+            readonly ReportingOptions options;
             RawDataReporter processingTimeReporter;
 
-            public ReportingStartupTask(Buffers buffers, UnicastBus bus, ISendMessages dispatcher, Configure config, MetricsOptions options)
+            public ReportingStartupTask(Buffers buffers, UnicastBus bus, ISendMessages dispatcher, Configure config, ReportingOptions options)
             {
                 this.buffers = buffers;
                 this.dispatcher = dispatcher;

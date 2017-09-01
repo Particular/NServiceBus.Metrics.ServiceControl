@@ -1,18 +1,22 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl
 {
-    using System;
-
-    class MetricsOptions
+    /// <summary>
+    /// Provides configuration options for reporting to ServiceControl.Monitoring.
+    /// </summary>
+    public class ReportingOptions
     {
-        public void SendMetricDataToServiceControl(string serviceControlMetricsAddress, TimeSpan interval, string instanceId = null)
+        /// <summary>
+        /// Configures reporters with an address of ServiceControl.Monitoring.
+        /// </summary>
+        /// <param name="serviceControlMetricsAddress">The address of ServiceControl.Monitoring.</param>
+        /// <param name="instanceId">A custom instance id used for reporting.</param>
+        public void SendMetricDataToServiceControl(string serviceControlMetricsAddress, string instanceId = null)
         {
             ServiceControlMetricsAddress = serviceControlMetricsAddress;
-            ServiceControlReportingInterval = interval;
             endpointInstanceIdOverride = instanceId;
         }
 
         internal string ServiceControlMetricsAddress;
-        internal TimeSpan ServiceControlReportingInterval;
         string endpointInstanceIdOverride;
 
         internal bool TryGetValidEndpointInstanceIdOverride(out string instanceId)
