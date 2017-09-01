@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Metrics.ServiceControl", "NServiceBus.Metrics.ServiceControl\NServiceBus.Metrics.ServiceControl.csproj", "{17FAA608-F5E1-4A48-BFEE-C2071BDB0238}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Metrics.ServiceControl.Tests", "NServiceBus.Metrics.ServiceControl.Tests\NServiceBus.Metrics.ServiceControl.Tests.csproj", "{CADE5B1F-43C1-4104-8253-6B14261DB00A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{17FAA608-F5E1-4A48-BFEE-C2071BDB0238}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17FAA608-F5E1-4A48-BFEE-C2071BDB0238}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17FAA608-F5E1-4A48-BFEE-C2071BDB0238}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17FAA608-F5E1-4A48-BFEE-C2071BDB0238}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CADE5B1F-43C1-4104-8253-6B14261DB00A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CADE5B1F-43C1-4104-8253-6B14261DB00A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CADE5B1F-43C1-4104-8253-6B14261DB00A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CADE5B1F-43C1-4104-8253-6B14261DB00A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
