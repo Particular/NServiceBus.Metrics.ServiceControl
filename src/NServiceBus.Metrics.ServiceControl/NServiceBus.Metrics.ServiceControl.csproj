@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net452</TargetFramework>
     <OutputPath>..\..\binaries\</OutputPath>
-    <DocumentationFile>..\..\binaries\NServiceBus.Metrics.ServiceControl.xml</DocumentationFile>
+    <DocumentationFile>..\..\binaries\net452\NServiceBus.Metrics.ServiceControl.xml</DocumentationFile>
     <LangVersion>7</LangVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
