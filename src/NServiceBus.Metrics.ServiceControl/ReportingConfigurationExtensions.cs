@@ -1,5 +1,6 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl
 {
+    using Configuration.AdvanceExtensibility;
     using Settings;
 
     /// <summary>
@@ -29,9 +30,9 @@
         /// </summary>
         /// <param name="endpointConfiguration">The endpoint configuration to enable the reporting feature on.</param>
         /// <returns>An object containing configuration options for the reporting feature.</returns>
-        public static ReportingOptions EnableMetrics(this Configure endpointConfiguration)
+        public static ReportingOptions EnableMetrics(this BusConfiguration endpointConfiguration)
         {
-            return EnableMetrics(endpointConfiguration.Settings);
+            return EnableMetrics(endpointConfiguration.GetSettings());
         }
     }
 }
