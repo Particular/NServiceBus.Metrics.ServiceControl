@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net452</TargetFramework>
+    <OutputPath>..\..\binaries\</OutputPath>
+    <DocumentationFile>..\..\binaries\NServiceBus.Metrics.ServiceControl.xml</DocumentationFile>
+    <LangVersion>7</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GitVersionTask" Version="3.6.5" />
+    <PackageReference Include="NServiceBus" Version="5.2.23" />
+    <PackageReference Include="NuGetPackager" Version="0.6.5" />
+  </ItemGroup>
+
+</Project>
