@@ -6,14 +6,14 @@
 
     class Buffers
     {
-        public readonly RingBuffer ProcessingTime = new RingBuffer();
-        public readonly TaggedLongValueWriterV1 Writer = new TaggedLongValueWriterV1();
+        public readonly RingBuffer ProcessingTimeBuffer = new RingBuffer();
+        public readonly TaggedLongValueWriterV1 ProcessingTimeWriter = new TaggedLongValueWriterV1();
 
-        void Write(long value, string tag, RingBuffer buffer)
+        void Write(long value, string tag, RingBuffer buffer, Func<string, int> tagProvider)
         {
             const int maxAttempts = 10;
 
-            if (buffer.TryWrite(value, Writer.GetTagId(tag)))
+            if (buffer.TryWrite(value, tagProvider(tag)))
             {
                 return;
             }
@@ -22,7 +22,7 @@
             for (var i = 0; i < maxAttempts; i++)
             {
                 spin.SpinOnce();
-                if (buffer.TryWrite(value, Writer.GetTagId(tag)))
+                if (buffer.TryWrite(value, tagProvider(tag)))
                 {
                     return;
                 }
@@ -31,7 +31,7 @@
 
         public void ReportProcessingTime(TimeSpan value, string messageType)
         {
-            Write((long)value.TotalMilliseconds, messageType, ProcessingTime);
+            Write((long)value.TotalMilliseconds, messageType, ProcessingTimeBuffer, ProcessingTimeWriter.GetTagId);
         }
     }
 }

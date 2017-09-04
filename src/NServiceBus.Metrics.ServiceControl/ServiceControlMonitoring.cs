@@ -105,7 +105,7 @@
             protected override void OnStart()
             {
                 var headers = CreateHeaders("ProcessingTime");
-                processingTimeReporter = new RawDataReporter(BuildSend(headers), buffers.ProcessingTime, (entries, binaryWriter) => buffers.Writer.Write(binaryWriter, entries));
+                processingTimeReporter = new RawDataReporter(BuildSend(headers), buffers.ProcessingTimeBuffer, (entries, binaryWriter) => buffers.ProcessingTimeWriter.Write(binaryWriter, entries));
                 processingTimeReporter.Start();
             }
 
