@@ -76,7 +76,9 @@
                 var connectionString = Environment.GetEnvironmentVariable(key + ".ConnectionString");
 
                 if (string.IsNullOrEmpty(connectionString) && DefaultConnectionStrings.ContainsKey(key))
+                {
                     connectionString = DefaultConnectionStrings[key];
+                }
 
 
                 if (!string.IsNullOrEmpty(connectionString))

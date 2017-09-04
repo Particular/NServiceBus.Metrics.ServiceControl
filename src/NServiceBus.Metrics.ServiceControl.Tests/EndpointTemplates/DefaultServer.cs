@@ -89,7 +89,9 @@
             yield return rootType;
 
             if (typeof(IEndpointConfigurationFactory).IsAssignableFrom(rootType) && rootType != builderType)
+            {
                 yield break;
+            }
 
             foreach (var nestedType in rootType.GetNestedTypes(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).SelectMany(t => GetNestedTypeRecursive(t, builderType)))
             {
