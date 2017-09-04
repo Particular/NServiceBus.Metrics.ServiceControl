@@ -5,6 +5,10 @@
     /// </summary>
     public class ReportingOptions
     {
+        internal ReportingOptions()
+        {
+        }
+
         /// <summary>
         /// Configures reporters with an address of ServiceControl.Monitoring.
         /// </summary>

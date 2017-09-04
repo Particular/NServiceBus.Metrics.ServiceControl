@@ -5,8 +5,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="NServiceBus.Metrics.ServiceControl.approved.cs" />
+    <Compile Remove="NServiceBus.Metrics.ServiceControl.received.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ApprovalTests" Version="3.0.13" />
     <PackageReference Include="NServiceBus.AcceptanceTesting" Version="5.2.23" />
     <PackageReference Include="NUnit" Version="3.8.1" />
+    <PackageReference Include="PublicApiGenerator" Version="6.1.0-beta2" />
   </ItemGroup>
 
   <ItemGroup>
