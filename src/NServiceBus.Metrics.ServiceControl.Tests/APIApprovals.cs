@@ -12,7 +12,7 @@
     [TestFixture]
     public class APIApprovals
     {
-        static readonly Assembly Assembly = typeof(ReportingConfigurationExtensions).Assembly;
+        static readonly Assembly Assembly = typeof(BusConfigurationExtensions).Assembly;
 
         [Test]
         [MethodImpl(MethodImplOptions.NoInlining)]

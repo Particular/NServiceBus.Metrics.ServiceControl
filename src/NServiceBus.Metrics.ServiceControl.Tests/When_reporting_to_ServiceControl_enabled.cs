@@ -65,7 +65,7 @@
         {
             public Sender()
             {
-                EndpointSetup<DefaultServer>(cfg => cfg.EnableReporting().SendMetricDataToServiceControl(Conventions.EndpointNamingConvention(typeof(MonitoringMock)), CustomInstanceId));
+                EndpointSetup<DefaultServer>(cfg => cfg.SendMetricDataToServiceControl(Conventions.EndpointNamingConvention(typeof(MonitoringMock)), CustomInstanceId));
             }
 
             public class MyMessageHandler : IHandleMessages<MyMessage>

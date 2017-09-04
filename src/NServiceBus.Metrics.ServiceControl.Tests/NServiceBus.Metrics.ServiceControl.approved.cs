@@ -3,13 +3,8 @@
 namespace NServiceBus.Metrics.ServiceControl
 {
     
-    public class static ReportingConfigurationExtensions
+    public class static BusConfigurationExtensions
     {
-        public static NServiceBus.Metrics.ServiceControl.ReportingOptions EnableReporting(this NServiceBus.Settings.SettingsHolder settings) { }
-        public static NServiceBus.Metrics.ServiceControl.ReportingOptions EnableReporting(this NServiceBus.BusConfiguration endpointConfiguration) { }
-    }
-    public class ReportingOptions
-    {
-        public void SendMetricDataToServiceControl(string serviceControlMetricsAddress, string instanceId = null) { }
+        public static void SendMetricDataToServiceControl(this NServiceBus.BusConfiguration busConfiguration, string serviceControlMetricsAddress, string instanceId = null) { }
     }
 }
