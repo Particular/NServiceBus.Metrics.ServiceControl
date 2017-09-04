@@ -25,7 +25,7 @@
       <TempFolder>$(TargetDir)temp</TempFolder>
     </PropertyGroup>
     <MakeDir Directories="$(TempFolder)" />
-    <Exec Command="$(ILRepack) /out:&quot;$(TempFolder)\$(AssemblyName).dll&quot; &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(TargetDir)ServiceControl.Monitoring.Data.dll&quot; /targetplatform:v4 /internalize /lib:&quot;$(TargetDir).&quot;" />
+    <Exec Command="&quot;$(ILRepack)&quot; /out:&quot;$(TempFolder)\$(AssemblyName).dll&quot; &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(TargetDir)ServiceControl.Monitoring.Data.dll&quot; /targetplatform:v4 /internalize /lib:&quot;$(TargetDir).&quot;" />
     <ItemGroup>
       <TempFiles Include="$(TempFolder)\*.*" />
     </ItemGroup>
