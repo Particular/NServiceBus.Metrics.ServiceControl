@@ -31,12 +31,12 @@
             {
                 // TODO: only msmq now
                 //var specificTransport = Environment.GetEnvironmentVariable("Transport.UseSpecific");
-                string specificTransport = null;
+                //string specificTransport = null;
 
-                if (!string.IsNullOrEmpty(specificTransport))
-                {
-                    return AllAvailable.Single(r => r.Key == specificTransport);
-                }
+                //if (!string.IsNullOrEmpty(specificTransport))
+                //{
+                //    return AllAvailable.Single(r => r.Key == specificTransport);
+                //}
 
                 var transportsOtherThanMsmq = AllAvailable.Where(t => t != Msmq);
 
