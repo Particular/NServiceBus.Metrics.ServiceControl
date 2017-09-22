@@ -11,7 +11,7 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
 {
     class NServiceBusMetricReport
     {
-        public NServiceBusMetricReport(IDispatchMessages dispatcher, MetricsOptions options, Dictionary<string, string> headers, Context context)
+        public NServiceBusMetricReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, Context context)
         {
             this.dispatcher = dispatcher;
             this.headers = headers;

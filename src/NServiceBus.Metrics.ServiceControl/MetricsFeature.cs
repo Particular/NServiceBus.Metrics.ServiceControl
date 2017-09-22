@@ -18,25 +18,42 @@ namespace NServiceBus.Metrics.ServiceControl
 {
     class ReportingFeature : Feature
     {
+        public ReportingFeature()
+        {
+            EnableByDefault();
+            Prerequisite(ctx=>
+            {
+                var options = ctx.Settings.GetOrDefault<MetricsOptions>();
+                if (options == null)
+                {
+                    return false;
+                }
+
+                var reportingOptions = ReportingOptions.Get(options);
+                var address = reportingOptions.ServiceControlMetricsAddress;
+                return string.IsNullOrEmpty(address) == false;
+            }, $"Reporting is enabled by calling '{nameof(MetricsOptionsExtensions.SendMetricDataToServiceControl2)}'");
+        }
+
         protected override void Setup(FeatureConfigurationContext context)
         {
             var settings = context.Settings;
             var options = settings.Get<MetricsOptions>();
             var endpointName = settings.EndpointName();
+
             var reportingOptions = ReportingOptions.Get(options);
             
-            SetUpServiceControlReporting(context, reportingOptions, endpointName, probeContext);
+            SetUpServiceControlReporting(context, reportingOptions, endpointName);
         }
 
-        static void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, ProbeContext probeContext)
+        static void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName)
         {
             if (!string.IsNullOrEmpty(options.ServiceControlMetricsAddress))
             {
                 var metricsContext = new Context();
-
                 SetUpQueueLengthReporting(context, metricsContext);
 
-                Func<IBuilder, Dictionary<string, string>> buildBaseHeaders = b =>
+                Dictionary<string, string> BuildBaseHeaders(IBuilder b)
                 {
                     var hostInformation = b.Build<HostInformation>();
 
@@ -45,7 +62,7 @@ namespace NServiceBus.Metrics.ServiceControl
                         {Headers.OriginatingEndpoint, endpointName},
                         {Headers.OriginatingMachine, RuntimeEnvironment.MachineName},
                         {Headers.OriginatingHostId, hostInformation.HostId.ToString("N")},
-                        {Headers.HostDisplayName, hostInformation.DisplayName },
+                        {Headers.HostDisplayName, hostInformation.DisplayName},
                     };
 
                     if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
@@ -54,20 +71,20 @@ namespace NServiceBus.Metrics.ServiceControl
                     }
 
                     return headers;
-                };
+                }
 
                 context.RegisterStartupTask(builder =>
                 {
-                    var headers = buildBaseHeaders(builder);
+                    var headers = BuildBaseHeaders(builder);
 
                     return new ServiceControlReporting(metricsContext, builder, options, headers);
                 });
 
                 context.RegisterStartupTask(builder =>
                 {
-                    var headers = buildBaseHeaders(builder);
+                    var headers = BuildBaseHeaders(builder);
 
-                    return new ServiceControlRawDataReporting(probeContext, builder, options, headers);
+                    return new ServiceControlRawDataReporting(builder, options, headers);
                 });
             }
         }
@@ -124,9 +141,8 @@ namespace NServiceBus.Metrics.ServiceControl
         {
             const string TaggedValueMetricContentType = "TaggedLongValueWriterOccurrence";
 
-            public ServiceControlRawDataReporting(ProbeContext probeContext, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
+            public ServiceControlRawDataReporting(IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
             {
-                this.probeContext = probeContext;
                 this.builder = builder;
                 this.options = options;
                 this.headers = headers;
@@ -136,22 +152,10 @@ namespace NServiceBus.Metrics.ServiceControl
 
             protected override Task OnStart(IMessageSession session)
             {
-                foreach (var durationProbe in probeContext.Durations)
-                {
-                    if (durationProbe.Name == ProcessingTimeProbeBuilder.ProcessingTime ||
-                        durationProbe.Name == CriticalTimeProbeBuilder.CriticalTime)
-                    {
-                        reporters.Add(CreateReporter(durationProbe));
-                    }
-                }
+                reporters.Add(CreateReporter(ref options.CriticalTimeHandler, "CriticalTime"));
+                reporters.Add(CreateReporter(ref options.ProcessingTimeHandler, "ProcessingTime"));
 
-                foreach (var signalProbe in probeContext.Signals)
-                {
-                    if (signalProbe.Name == RetriesProbeBuilder.Retries)
-                    {
-                        reporters.Add(CreateReporter(signalProbe));
-                    }
-                }
+                reporters.Add(CreateReporter(ref options.RetryHandler, "Retries"));
 
                 foreach (var reporter in reporters)
                 {
@@ -161,39 +165,35 @@ namespace NServiceBus.Metrics.ServiceControl
                 return Task.FromResult(0);
             }
 
-            RawDataReporter CreateReporter(IDurationProbe probe)
+            RawDataReporter CreateReporter(ref OnEvent<DurationEvent> handler, string metricType)
             {
-                var metricType = GetMetricType(probe);
                 var writer = new TaggedLongValueWriterV1();
 
                 return CreateReporter(
-                    writeAction => probe.Register((ref DurationEvent d) =>
+                    writeAction => handler = (ref DurationEvent d) =>
                     {
                         var tag = writer.GetTagId(d.MessageType ?? "");
                         writeAction((long)d.Duration.TotalMilliseconds, tag);
-                    }),
+                    },
                     metricType,
                     TaggedValueMetricContentType,
                     (entries, binaryWriter) => writer.Write(binaryWriter, entries));
             }
 
-            RawDataReporter CreateReporter(ISignalProbe probe)
+            RawDataReporter CreateReporter(ref OnEvent<SignalEvent> handler, string metricType)
             {
-                var metricType = GetMetricType(probe);
                 var writer = new TaggedLongValueWriterV1();
 
                 return CreateReporter(
-                    writeAction => probe.Register((ref SignalEvent e) =>
+                    writeAction => handler = (ref SignalEvent e) =>
                     {
                         var tag = writer.GetTagId(e.MessageType ?? "");
                         writeAction(1, tag);
-                    }),
+                    },
                     metricType,
                     TaggedValueMetricContentType,
                     (entries, binaryWriter) => writer.Write(binaryWriter, entries));
             }
-
-            static string GetMetricType(IProbe probe) => $"{probe.Name.Replace(" ", string.Empty)}";
 
             RawDataReporter CreateReporter(Action<Action<long, int>> setupProbe, string metricType, string contentType, WriteOutput outputWriter)
             {
@@ -208,7 +208,7 @@ namespace NServiceBus.Metrics.ServiceControl
                 var dispatcher = builder.Build<IDispatchMessages>();
                 var address = new UnicastAddressTag(options.ServiceControlMetricsAddress);
 
-                Func<byte[], Task> sender = async body =>
+                async Task Sender(byte[] body)
                 {
                     var message = new OutgoingMessage(Guid.NewGuid().ToString(), reporterHeaders, body);
 
@@ -222,9 +222,9 @@ namespace NServiceBus.Metrics.ServiceControl
                     {
                         log.Error($"Error while reporting raw data to {options.ServiceControlMetricsAddress}.", ex);
                     }
-                };
+                }
 
-                var reporter = new RawDataReporter(sender, buffer, outputWriter);
+                var reporter = new RawDataReporter(Sender, buffer, outputWriter);
 
                 setupProbe((value, tag) =>
                 {
