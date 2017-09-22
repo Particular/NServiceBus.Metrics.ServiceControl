@@ -152,10 +152,10 @@ namespace NServiceBus.Metrics.ServiceControl
 
             protected override Task OnStart(IMessageSession session)
             {
-                reporters.Add(CreateReporter(ref options.CriticalTimeHandler, "CriticalTime"));
-                reporters.Add(CreateReporter(ref options.ProcessingTimeHandler, "ProcessingTime"));
+                reporters.Add(CreateReporter(out options.CriticalTimeHandler, "CriticalTime"));
+                reporters.Add(CreateReporter(out options.ProcessingTimeHandler, "ProcessingTime"));
 
-                reporters.Add(CreateReporter(ref options.RetryHandler, "Retries"));
+                reporters.Add(CreateReporter(out options.RetryHandler, "Retries"));
 
                 foreach (var reporter in reporters)
                 {
@@ -165,39 +165,44 @@ namespace NServiceBus.Metrics.ServiceControl
                 return Task.FromResult(0);
             }
 
-            RawDataReporter CreateReporter(ref OnEvent<DurationEvent> handler, string metricType)
+            RawDataReporter CreateReporter(out OnEvent<DurationEvent> handler, string metricType)
             {
                 var writer = new TaggedLongValueWriterV1();
 
-                return CreateReporter(
-                    writeAction => handler = (ref DurationEvent d) =>
-                    {
-                        var tag = writer.GetTagId(d.MessageType ?? "");
-                        writeAction((long)d.Duration.TotalMilliseconds, tag);
-                    },
-                    metricType,
+                var reporter = CreateReporter(metricType,
                     TaggedValueMetricContentType,
-                    (entries, binaryWriter) => writer.Write(binaryWriter, entries));
+                    (entries, binaryWriter) => writer.Write(binaryWriter, entries), out var buffer);
+
+                handler = (ref DurationEvent e) =>
+                {
+                    var tag = writer.GetTagId(e.MessageType ?? "");
+                    RingBufferExtensions.WriteTaggedValue(buffer, metricType, (long)e.Duration.TotalMilliseconds, tag);
+                };
+
+                return reporter;
             }
 
-            RawDataReporter CreateReporter(ref OnEvent<SignalEvent> handler, string metricType)
+            RawDataReporter CreateReporter(out OnEvent<SignalEvent> handler, string metricType)
             {
                 var writer = new TaggedLongValueWriterV1();
 
-                return CreateReporter(
-                    writeAction => handler = (ref SignalEvent e) =>
-                    {
-                        var tag = writer.GetTagId(e.MessageType ?? "");
-                        writeAction(1, tag);
-                    },
+                var reporter = CreateReporter(
                     metricType,
                     TaggedValueMetricContentType,
-                    (entries, binaryWriter) => writer.Write(binaryWriter, entries));
+                    (entries, binaryWriter) => writer.Write(binaryWriter, entries), out var buffer);
+
+                handler = (ref SignalEvent e) =>
+                {
+                    var tag = writer.GetTagId(e.MessageType ?? "");
+                    RingBufferExtensions.WriteTaggedValue(buffer, metricType, 1, tag);
+                };
+
+                return reporter;
             }
 
-            RawDataReporter CreateReporter(Action<Action<long, int>> setupProbe, string metricType, string contentType, WriteOutput outputWriter)
+            RawDataReporter CreateReporter(string metricType, string contentType, WriteOutput outputWriter, out RingBuffer buffer)
             {
-                var buffer = new RingBuffer();
+                buffer = new RingBuffer();
 
                 var reporterHeaders = new Dictionary<string, string>(headers)
                 {
@@ -224,28 +229,7 @@ namespace NServiceBus.Metrics.ServiceControl
                     }
                 }
 
-                var reporter = new RawDataReporter(Sender, buffer, outputWriter);
-
-                setupProbe((value, tag) =>
-                {
-                    var written = false;
-                    var attempts = 0;
-
-                    while (!written)
-                    {
-                        written = buffer.TryWrite(value, tag);
-
-                        attempts++;
-
-                        if (attempts >= MaxExpectedWriteAttempts)
-                        {
-                            log.Warn($"Failed to buffer metrics data for ${metricType} after ${attempts} attempts.");
-                            attempts = 0;
-                        }
-                    }
-                });
-
-                return reporter;
+                return new RawDataReporter(Sender, buffer, outputWriter);
             }
 
             protected override async Task OnStop(IMessageSession session)
@@ -263,8 +247,6 @@ namespace NServiceBus.Metrics.ServiceControl
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;
             readonly List<RawDataReporter> reporters;
-
-            const int MaxExpectedWriteAttempts = 10;
 
             static readonly ILog log = LogManager.GetLogger<ServiceControlRawDataReporting>();
         }
