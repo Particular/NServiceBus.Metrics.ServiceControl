@@ -16,12 +16,14 @@ using ServiceControl.Monitoring.Data;
 
 namespace NServiceBus.Metrics.ServiceControl
 {
+    using MessageMutator;
+
     class ReportingFeature : Feature
     {
         public ReportingFeature()
         {
             EnableByDefault();
-            Prerequisite(ctx=>
+            Prerequisite(ctx =>
             {
                 var options = ctx.Settings.GetOrDefault<MetricsOptions>();
                 if (options == null)
@@ -41,7 +43,7 @@ namespace NServiceBus.Metrics.ServiceControl
             var options = settings.Get<MetricsOptions>();
             var endpointName = settings.EndpointName();
 
-            var metrics = new Dictionary<string, Tuple<RingBuffer,TaggedLongValueWriterV1>>();
+            var metrics = new Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>>();
             void RegisterDuration(IDurationProbe probe)
             {
                 var buffer = new RingBuffer();
@@ -91,56 +93,63 @@ namespace NServiceBus.Metrics.ServiceControl
             });
 
             var reportingOptions = ReportingOptions.Get(options);
-            
+
             SetUpServiceControlReporting(context, reportingOptions, endpointName, metrics);
         }
 
-        static void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
+        void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
         {
-            if (!string.IsNullOrEmpty(options.ServiceControlMetricsAddress))
+            var metricsContext = new MetricsContext(endpointName);
+            SetUpQueueLengthReporting(context, metricsContext);
+
+            Dictionary<string, string> BuildBaseHeaders(IBuilder b)
             {
-                var metricsContext = new MetricsContext(endpointName);
-                SetUpQueueLengthReporting(context, metricsContext);
+                var hostInformation = b.Build<HostInformation>();
 
-                Dictionary<string, string> BuildBaseHeaders(IBuilder b)
+                var headers = new Dictionary<string, string>
                 {
-                    var hostInformation = b.Build<HostInformation>();
+                    {Headers.OriginatingEndpoint, endpointName},
+                    {Headers.OriginatingMachine, RuntimeEnvironment.MachineName},
+                    {Headers.OriginatingHostId, hostInformation.HostId.ToString("N")},
+                    {Headers.HostDisplayName, hostInformation.DisplayName},
+                };
 
-                    var headers = new Dictionary<string, string>
-                    {
-                        {Headers.OriginatingEndpoint, endpointName},
-                        {Headers.OriginatingMachine, RuntimeEnvironment.MachineName},
-                        {Headers.OriginatingHostId, hostInformation.HostId.ToString("N")},
-                        {Headers.HostDisplayName, hostInformation.DisplayName},
-                    };
-
-                    if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
-                    {
-                        headers.Add(MetricHeaders.MetricInstanceId, instanceId);
-                    }
-
-                    return headers;
+                if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
+                {
+                    headers.Add(MetricHeaders.MetricInstanceId, instanceId);
                 }
 
-                context.RegisterStartupTask(builder =>
-                {
-                    var headers = BuildBaseHeaders(builder);
-
-                    return new ServiceControlReporting(metricsContext, builder, options, headers);
-                });
-
-                context.RegisterStartupTask(builder =>
-                {
-                    var headers = BuildBaseHeaders(builder);
-
-                    return new ServiceControlRawDataReporting(builder, options, headers, durations);
-                });
+                return headers;
             }
+
+            context.RegisterStartupTask(builder =>
+            {
+                var headers = BuildBaseHeaders(builder);
+
+                return new ServiceControlReporting(metricsContext, builder, options, headers);
+            });
+
+            context.RegisterStartupTask(builder =>
+            {
+                var headers = BuildBaseHeaders(builder);
+
+                return new ServiceControlRawDataReporting(builder, options, headers, durations);
+            });
+
+            SetUpOutgoingMessageMutator(context, options);
         }
 
         static void SetUpQueueLengthReporting(FeatureConfigurationContext context, MetricsContext metricsContext)
         {
             QueueLengthTracker.SetUp(metricsContext, context);
+        }
+
+        void SetUpOutgoingMessageMutator(FeatureConfigurationContext context, ReportingOptions options)
+        {
+            if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
+            {
+                context.Container.ConfigureComponent(() => new MetricsIdAttachingMutator(instanceId), DependencyLifecycle.SingleInstance);
+            }
         }
 
         class ServiceControlReporting : FeatureStartupTask
@@ -204,7 +213,7 @@ namespace NServiceBus.Metrics.ServiceControl
             {
                 foreach (var metric in metrics)
                 {
-                    reporters.Add(CreateReporter( metric.Key, metric.Value.Item1, metric.Value.Item2));
+                    reporters.Add(CreateReporter(metric.Key, metric.Value.Item1, metric.Value.Item2));
                 }
 
                 foreach (var reporter in reporters)
@@ -222,7 +231,7 @@ namespace NServiceBus.Metrics.ServiceControl
                     {Headers.ContentType, TaggedValueMetricContentType},
                     {MetricHeaders.MetricType, metricType}
                 };
-            
+
                 var dispatcher = builder.Build<IDispatchMessages>();
                 var address = new UnicastAddressTag(options.ServiceControlMetricsAddress);
 
@@ -262,6 +271,22 @@ namespace NServiceBus.Metrics.ServiceControl
             readonly List<RawDataReporter> reporters;
 
             static readonly ILog log = LogManager.GetLogger<ServiceControlRawDataReporting>();
+        }
+
+        class MetricsIdAttachingMutator : IMutateOutgoingMessages
+        {
+            readonly string instanceId;
+
+            public MetricsIdAttachingMutator(string instanceId)
+            {
+                this.instanceId = instanceId;
+            }
+
+            public Task MutateOutgoing(MutateOutgoingMessageContext context)
+            {
+                context.OutgoingHeaders[MetricHeaders.MetricInstanceId] = instanceId;
+                return TaskExtensions.Completed;
+            }
         }
     }
 }
