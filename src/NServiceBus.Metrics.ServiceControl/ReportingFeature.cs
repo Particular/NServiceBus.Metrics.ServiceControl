@@ -99,7 +99,7 @@ namespace NServiceBus.Metrics.ServiceControl
         {
             if (!string.IsNullOrEmpty(options.ServiceControlMetricsAddress))
             {
-                var metricsContext = new Context();
+                var metricsContext = new MetricsContext(endpointName);
                 SetUpQueueLengthReporting(context, metricsContext);
 
                 Dictionary<string, string> BuildBaseHeaders(IBuilder b)
@@ -138,14 +138,14 @@ namespace NServiceBus.Metrics.ServiceControl
             }
         }
 
-        static void SetUpQueueLengthReporting(FeatureConfigurationContext context, Context metricsContext)
+        static void SetUpQueueLengthReporting(FeatureConfigurationContext context, MetricsContext metricsContext)
         {
             QueueLengthTracker.SetUp(metricsContext, context);
         }
 
         class ServiceControlReporting : FeatureStartupTask
         {
-            public ServiceControlReporting(Context metricsContext, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
+            public ServiceControlReporting(MetricsContext metricsContext, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
             {
                 this.metricsContext = metricsContext;
                 this.builder = builder;
@@ -179,7 +179,7 @@ namespace NServiceBus.Metrics.ServiceControl
             }
 
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            readonly Context metricsContext;
+            readonly MetricsContext metricsContext;
             readonly IBuilder builder;
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;

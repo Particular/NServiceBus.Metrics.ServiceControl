@@ -13,17 +13,17 @@
         const string KeyHeaderName = "NServiceBus.Metrics.QueueLength.Key";
         const string ValueHeaderName = "NServiceBus.Metrics.QueueLength.Value";
 
-        Context metricsContext;
+        MetricsContext metricsContext;
 
         ConcurrentDictionary<string, Counter> sendingCounters = new ConcurrentDictionary<string, Counter>();
         ConcurrentDictionary<string, Gauge> receivingReporters = new ConcurrentDictionary<string, Gauge>();
 
-        QueueLengthTracker(Context metricsContext)
+        QueueLengthTracker(MetricsContext metricsContext)
         {
             this.metricsContext = metricsContext;
         }
 
-        public static void SetUp(Context metricsContext, FeatureConfigurationContext featureContext)
+        public static void SetUp(MetricsContext metricsContext, FeatureConfigurationContext featureContext)
         {
             var queueLengthTracker = new QueueLengthTracker(metricsContext);
 

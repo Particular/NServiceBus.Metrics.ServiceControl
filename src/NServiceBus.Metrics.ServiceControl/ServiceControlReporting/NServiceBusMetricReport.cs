@@ -11,18 +11,18 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
 {
     class NServiceBusMetricReport
     {
-        public NServiceBusMetricReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, Context context)
+        public NServiceBusMetricReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, MetricsContext metricsContext)
         {
             this.dispatcher = dispatcher;
             this.headers = headers;
-            this.context = context;
+            this.metricsContext = metricsContext;
 
             destination = new UnicastAddressTag(options.ServiceControlMetricsAddress);
         }
 
         public async Task RunReportAsync()
         {
-            var stringBody = $@"{{""Data"" : {context.ToJson()}}}";
+            var stringBody = $@"{{""Data"" : {metricsContext.ToJson()}}}";
             var body = Encoding.UTF8.GetBytes(stringBody);
 
             var message = new OutgoingMessage(Guid.NewGuid().ToString(), headers, body);
@@ -42,7 +42,7 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
         UnicastAddressTag destination;
         IDispatchMessages dispatcher;
         Dictionary<string, string> headers;
-        readonly Context context;
+        readonly MetricsContext metricsContext;
         TransportTransaction transportTransaction = new TransportTransaction();
 
         static ILog log = LogManager.GetLogger<NServiceBusMetricReport>();

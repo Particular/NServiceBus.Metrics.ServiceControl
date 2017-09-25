@@ -6,13 +6,19 @@
     using System.Linq;
     using System.Threading;
 
-    class Context
+    class MetricsContext
     {
+        public MetricsContext(string context)
+        {
+            Context = context;
+        }
+
         readonly ConcurrentDictionary<string, Counter> counters = new ConcurrentDictionary<string, Counter>();
         readonly ConcurrentDictionary<Tuple<string,string>, Gauge> gauges = new ConcurrentDictionary<Tuple<string, string>, Gauge>();
 
         public IEnumerable<Counter> Counters => counters.Select(kvp => kvp.Value);
         public IEnumerable<Gauge> Gauges => gauges.Select(kvp => kvp.Value);
+        public string Context { get; }
 
         public Counter Counter(string key) => counters.GetOrAdd(key, k => new Counter(k));
         public Gauge Gauge(string key, string queue) => gauges.GetOrAdd(Tuple.Create(key,queue), t => new Gauge(t.Item1,t.Item2));
