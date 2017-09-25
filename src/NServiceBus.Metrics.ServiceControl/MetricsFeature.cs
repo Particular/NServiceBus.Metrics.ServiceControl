@@ -168,10 +168,11 @@ namespace NServiceBus.Metrics.ServiceControl
             RawDataReporter CreateReporter(out OnEvent<DurationEvent> handler, string metricType)
             {
                 var writer = new TaggedLongValueWriterV1();
+                var buffer = new RingBuffer();
 
                 var reporter = CreateReporter(metricType,
                     TaggedValueMetricContentType,
-                    (entries, binaryWriter) => writer.Write(binaryWriter, entries), out var buffer);
+                    (entries, binaryWriter) => writer.Write(binaryWriter, entries), buffer);
 
                 handler = (ref DurationEvent e) =>
                 {
@@ -185,11 +186,12 @@ namespace NServiceBus.Metrics.ServiceControl
             RawDataReporter CreateReporter(out OnEvent<SignalEvent> handler, string metricType)
             {
                 var writer = new TaggedLongValueWriterV1();
+                var buffer = new RingBuffer();
 
                 var reporter = CreateReporter(
                     metricType,
                     TaggedValueMetricContentType,
-                    (entries, binaryWriter) => writer.Write(binaryWriter, entries), out var buffer);
+                    (entries, binaryWriter) => writer.Write(binaryWriter, entries), buffer);
 
                 handler = (ref SignalEvent e) =>
                 {
@@ -200,10 +202,8 @@ namespace NServiceBus.Metrics.ServiceControl
                 return reporter;
             }
 
-            RawDataReporter CreateReporter(string metricType, string contentType, WriteOutput outputWriter, out RingBuffer buffer)
+            RawDataReporter CreateReporter(string metricType, string contentType, WriteOutput outputWriter, RingBuffer buffer)
             {
-                buffer = new RingBuffer();
-
                 var reporterHeaders = new Dictionary<string, string>(headers)
                 {
                     {Headers.ContentType, contentType},
