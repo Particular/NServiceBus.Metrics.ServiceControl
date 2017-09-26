@@ -20,6 +20,10 @@
 // VERSION: 0.38.0
 
 // NOTE: uncomment the following line to make SimpleJson class internal.
+
+// ReSharper disable All
+
+
 #define SIMPLE_JSON_INTERNAL
 
 // NOTE: uncomment the following line to make JsonArray and JsonObject class internal.
