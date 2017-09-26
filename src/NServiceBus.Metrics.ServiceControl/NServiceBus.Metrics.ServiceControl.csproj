@@ -16,8 +16,8 @@
   <ItemGroup>
     <PackageReference Include="GitVersionTask" Version="3.6.5" />
     <PackageReference Include="ILRepack" Version="2.0.13" />
-    <PackageReference Include="NServiceBus" Version="6.4.0" />
-    <PackageReference Include="NServiceBus.Metrics" Version="2.0.0-beta0031" />
+    <PackageReference Include="NServiceBus" Version="[6.4.0,7.0.0)" />
+    <PackageReference Include="NServiceBus.Metrics" Version="[2.0.0-*,3.0.0)" />
     <PackageReference Include="NuGetPackager" Version="0.6.5" />
     <PackageReference Include="ServiceControl.Monitoring.Data" Version="1.1.0" />
   </ItemGroup>

@@ -9,6 +9,7 @@
         /// <summary>
         /// Enables sending periodic updates of metric data to ServiceControl
         /// </summary>
+        /// <param name="options">The metrics options configuration object.</param>
         /// <param name="serviceControlMetricsAddress">The transport address of the ServiceControl instance</param>
         /// <param name="interval">Interval between consecutive reports</param>
         /// <param name="instanceId">Unique, human-readable, stable between restarts, identifier for running endpoint instance.</param>
