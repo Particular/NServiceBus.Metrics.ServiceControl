@@ -11,6 +11,9 @@
 
   <ItemGroup>
     <PackageReference Include="NUnit" Version="3.8.1" />
+    <PackageReference Include="ApprovalTests" Version="3.*" />
+    <PackageReference Include="ApprovalUtilities" Version="3.*" />
+    <PackageReference Include="PublicApiGenerator" Version="6.1.0-*" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,5 +25,4 @@
       <HintPath>..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\Microsoft.CSharp.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>
