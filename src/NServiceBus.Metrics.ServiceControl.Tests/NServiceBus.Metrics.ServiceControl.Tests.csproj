@@ -5,11 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="NServiceBus.Metrics.ServiceControl.approved.cs" />
-    <Compile Remove="NServiceBus.Metrics.ServiceControl.received.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="NUnit" Version="3.8.1" />
     <PackageReference Include="ApprovalTests" Version="3.*" />
     <PackageReference Include="ApprovalUtilities" Version="3.*" />
