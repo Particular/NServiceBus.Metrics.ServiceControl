@@ -49,7 +49,7 @@
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.UniquelyIdentifyRunningInstance().UsingCustomIdentifier(HostId);
-                    c.EnableMetrics().SendMetricDataToServiceControl2(MonitoringSpyAddress, TimeSpan.FromSeconds(1));
+                    c.EnableMetrics().SendMetricDataToServiceControl(MonitoringSpyAddress, TimeSpan.FromSeconds(1));
                 });
             }
         }

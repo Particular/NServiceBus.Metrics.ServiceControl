@@ -116,7 +116,7 @@ public class When_sending_message : NServiceBusAcceptanceTest
                 runningInstance.UsingCustomIdentifier(HostId);
                 var address = NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
                 var metrics = c.EnableMetrics();
-                metrics.SendMetricDataToServiceControl2(address, TimeSpan.FromSeconds(5));
+                metrics.SendMetricDataToServiceControl(address, TimeSpan.FromSeconds(5));
             });
         }
     }

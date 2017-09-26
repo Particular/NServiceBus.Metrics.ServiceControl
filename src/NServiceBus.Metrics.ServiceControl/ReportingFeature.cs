@@ -34,7 +34,7 @@ namespace NServiceBus.Metrics.ServiceControl
                 var reportingOptions = ReportingOptions.Get(options);
                 var address = reportingOptions.ServiceControlMetricsAddress;
                 return string.IsNullOrEmpty(address) == false;
-            }, $"Reporting is enabled by calling '{nameof(MetricsOptionsExtensions.SendMetricDataToServiceControl2)}'");
+            }, $"Reporting is enabled by calling '{nameof(MetricsOptionsExtensions.SendMetricDataToServiceControl)}'");
         }
 
         protected override void Setup(FeatureConfigurationContext context)

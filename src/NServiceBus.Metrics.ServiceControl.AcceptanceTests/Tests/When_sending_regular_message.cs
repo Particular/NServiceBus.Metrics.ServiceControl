@@ -35,7 +35,7 @@ public class When_sending_regular_message : NServiceBusAcceptanceTest
             EndpointSetup<DefaultServer>(c =>
             {
                 var metrics = c.EnableMetrics();
-                metrics.SendMetricDataToServiceControl2("non-existing-queue", TimeSpan.FromSeconds(1), InstanceId);
+                metrics.SendMetricDataToServiceControl("non-existing-queue", TimeSpan.FromSeconds(1), InstanceId);
             });
         }
     }

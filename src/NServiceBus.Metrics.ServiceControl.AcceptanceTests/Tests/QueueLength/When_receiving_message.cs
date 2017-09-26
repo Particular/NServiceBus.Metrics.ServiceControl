@@ -87,7 +87,7 @@ public class When_receiving_message : NServiceBusAcceptanceTest
                 c.LimitMessageProcessingConcurrencyTo(1);
                 var address = NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
                 var metrics = c.EnableMetrics();
-                metrics.SendMetricDataToServiceControl2(address, TimeSpan.FromSeconds(5));
+                metrics.SendMetricDataToServiceControl(address, TimeSpan.FromSeconds(5));
 
                 c.Pipeline.Remove("DispatchQueueLengthBehavior");
             });
