@@ -5,7 +5,7 @@
     <OutputPath>..\..\binaries\</OutputPath>
     <DocumentationFile>..\..\binaries\net452\NServiceBus.Metrics.ServiceControl.xml</DocumentationFile>
     <LangVersion>7</LangVersion>
-    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <DebugType>full</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
