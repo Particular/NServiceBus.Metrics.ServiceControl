@@ -12,7 +12,9 @@
     <description>Plugin for sending endpoint monitoring data to ServiceControl Monitoring instance</description>
     <copyright>$copyright$</copyright>
     <tags>$tags$</tags>
-    <dependencies />
+    <dependencies>
+      <dependency id="NServiceBus" version="[5.0.0, 6.0.0)" />
+    </dependencies>
   </metadata>
   <files>
     <file src="..\..\binaries\net452\NServiceBus.Metrics.ServiceControl.???" target="lib\net452" />
