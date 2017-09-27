@@ -5,14 +5,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="NServiceBus.Metrics.ServiceControl.approved.cs" />
-    <Compile Remove="NServiceBus.Metrics.ServiceControl.received.cs" />
+    <Compile Remove="APIApprovals.Approve.approved.cs" />
+    <Compile Remove="APIApprovals.Approve.received.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ApprovalTests" Version="3.0.13" />
-    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="5.2.23" />
     <PackageReference Include="NUnit" Version="3.8.1" />
+    <PackageReference Include="ApprovalTests" Version="3.*" />
+    <PackageReference Include="ApprovalUtilities" Version="3.*" />
     <PackageReference Include="PublicApiGenerator" Version="6.1.0-*" />
   </ItemGroup>
 
@@ -25,5 +25,4 @@
       <HintPath>..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\Microsoft.CSharp.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>
