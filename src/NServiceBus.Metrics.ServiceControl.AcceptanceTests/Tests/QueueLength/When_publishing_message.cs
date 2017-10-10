@@ -10,9 +10,7 @@ using NServiceBus.AcceptanceTesting;
 using NServiceBus.AcceptanceTests;
 using NServiceBus.AcceptanceTests.EndpointTemplates;
 using NServiceBus.Extensibility;
-using NServiceBus.Features;
 using NServiceBus.Metrics;
-using NServiceBus.Metrics.AcceptanceTests;
 using NServiceBus.ObjectBuilder;
 using NServiceBus.Pipeline;
 using NServiceBus.Routing;
@@ -139,12 +137,12 @@ public class When_publishing_message : NServiceBusAcceptanceTest
             EndpointSetup<DefaultServer>(c =>
             {
                 c.LimitMessageProcessingConcurrencyTo(1);
-                c.DisableFeature<AutoSubscribe>();
+                //c.DisableFeature<AutoSubscribe>();
 
-                var routing = c.UseTransport<MsmqTransport>().Routing();
-                var publisher = NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Publisher));
-                routing.RegisterPublisher(typeof(TestEventMessage1), publisher);
-                routing.RegisterPublisher(typeof(TestEventMessage2), publisher);
+                //var routing = c.UseTransport<LearningTransport>().Routing();
+                //var publisher = NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Publisher));
+                //routing.RegisterPublisher(typeof(TestEventMessage1), publisher);
+                //routing.RegisterPublisher(typeof(TestEventMessage2), publisher);
             });
         }
 
