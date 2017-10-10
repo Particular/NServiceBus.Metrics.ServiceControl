@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net452</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="NServiceBus.Metrics.ServiceControl.approved.cs" />
+    <Compile Remove="NServiceBus.Metrics.ServiceControl.received.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ApprovalTests" Version="3.0.13" />
+    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="5.2.23" />
+    <PackageReference Include="NUnit" Version="3.8.1" />
+    <PackageReference Include="PublicApiGenerator" Version="6.1.0-*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NServiceBus.Metrics.ServiceControl\NServiceBus.Metrics.ServiceControl.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp">
+      <HintPath>..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\Microsoft.CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
