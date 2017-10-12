@@ -14,12 +14,14 @@
     <PackageReference Include="NServiceBus.Metrics" Version="3.0.0-rc0002" />
     <PackageReference Include="ServiceControl.Monitoring.Data" Version="1.1.0" PrivateAssets="All" />
   </ItemGroup>
+  
   <Target Name="MergeDependencies" AfterTargets="CopyFilesToOutputDirectory">
     <PropertyGroup>
-      <TempFolder>$(TargetDir)temp</TempFolder>
+      <TempFolder>$(ProjectDir)$(OutputPath)temp</TempFolder>
     </PropertyGroup>
     <MakeDir Directories="$(TempFolder)" />
-    <Exec Command="&quot;$(ILRepack)&quot; /out:&quot;$(TempFolder)\$(AssemblyName).dll&quot; &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(TargetDir)ServiceControl.Monitoring.Data.dll&quot; /targetplatform:v4 /internalize /lib:&quot;$(TargetDir).&quot;" />
+    <Exec Condition="'$(TargetFramework)' == 'netstandard2.0'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(TempFolder)\$(AssemblyName).dll&quot; &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(TargetDir)ServiceControl.Monitoring.Data.dll&quot; /targetplatform:v4 /internalize /lib:&quot;C:\Program Files\dotnet\sdk\NuGetFallbackFolder\netstandard.library\2.0.0\build\netstandard2.0\ref&quot;" />
+    <Exec Condition="'$(TargetFramework)' != 'netstandard2.0'" Command="&quot;$(ILRepack)&quot; /out:&quot;$(TempFolder)\$(AssemblyName).dll&quot; &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(TargetDir)ServiceControl.Monitoring.Data.dll&quot; /targetplatform:v4 /internalize" />
     <ItemGroup>
       <TempFiles Include="$(TempFolder)\*.*" />
     </ItemGroup>
@@ -27,4 +29,5 @@
     <Delete Files="@(TempFiles)" />
     <RemoveDir Directories="$(TempFolder)" />
   </Target>
+  
 </Project>
