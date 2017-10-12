@@ -5,24 +5,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="APIApprovals.Approve.approved.cs" />
-    <Compile Remove="APIApprovals.Approve.received.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="NUnit" Version="3.8.1" />
-    <PackageReference Include="ApprovalTests" Version="3.0.13" />
-    <PackageReference Include="ApprovalUtilities" Version="3.0.13" />
-    <PackageReference Include="PublicApiGenerator" Version="6.1.0-beta2" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\NServiceBus.Metrics.ServiceControl\NServiceBus.Metrics.ServiceControl.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Microsoft.CSharp">
-      <HintPath>..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\Microsoft.CSharp.dll</HintPath>
-    </Reference>
+    <PackageReference Include="ApprovalTests" Version="3.0.13" />
+    <PackageReference Include="ApprovalUtilities" Version="3.0.13" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
+    <PackageReference Include="NServiceBus" Version="7.0.0-beta0007" />
+    <PackageReference Include="NServiceBus.Metrics" Version="3.0.0-rc0002" />
+    <PackageReference Include="NUnit" Version="3.8.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="3.8.0-alpha1" />
+    <PackageReference Include="PublicApiGenerator" Version="6.4.0" />
   </ItemGroup>
+
 </Project>
