@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET452
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -52,3 +53,4 @@ public class APIApprovals
         public override string GetReceivedFilename(string basename) => Path.Combine(directory, base.GetReceivedFilename(basename));
     }
 }
+#endif
