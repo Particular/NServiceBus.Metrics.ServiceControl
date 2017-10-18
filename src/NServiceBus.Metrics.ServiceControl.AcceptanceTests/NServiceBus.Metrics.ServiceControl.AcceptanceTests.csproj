@@ -17,7 +17,5 @@
     <PackageReference Include="NUnit" Version="3.8.1" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.8.0-alpha1" />
   </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="GitVersionTask" Version="4.0.0-beta0012" />
-  </ItemGroup>
+
 </Project>
