@@ -18,4 +18,7 @@
   <ItemGroup>
     <Reference Include="System.Messaging" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="GitVersionTask" Version="4.0.0-beta0012" />
+  </ItemGroup>
 </Project>

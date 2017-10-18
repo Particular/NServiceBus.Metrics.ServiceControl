@@ -25,4 +25,8 @@
       <HintPath>..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\Microsoft.CSharp.dll</HintPath>
     </Reference>
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="GitVersionTask" Version="4.0.0-beta0012" />
+  </ItemGroup>
 </Project>
