@@ -251,7 +251,7 @@ namespace NServiceBus.Metrics.ServiceControl
                     }
                 }
 
-                return new RawDataReporter(Sender, buffer, (entries, binaryWriter) => writer.Write(binaryWriter, entries));
+                return new RawDataReporter(Sender, buffer, (entries, binaryWriter) => writer.Write(binaryWriter, entries), 2048, options.ServiceControlReportingInterval);
             }
 
             protected override async Task OnStop(IMessageSession session)
