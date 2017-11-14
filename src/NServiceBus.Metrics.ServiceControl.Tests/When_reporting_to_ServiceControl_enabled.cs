@@ -15,6 +15,7 @@
 
     public class When_reporting_to_ServiceControl_enabled : NServiceBusAcceptanceTest
     {
+        static readonly byte[] FullyQualifiedMessageNameBytes = new UTF8Encoding(false).GetBytes(typeof(MyMessage).AssemblyQualifiedName);
         const string CustomInstanceId = "my-custom-instance";
 
         [Test]
@@ -41,8 +42,7 @@
             Assert.AreEqual("TaggedLongValueWriterOccurrence", headers["NServiceBus.ContentType"]);
 
             // dummy assert for containing the name of message in the message body
-            var fullyQualifiedName = new UTF8Encoding(false).GetBytes(typeof(MyMessage).AssemblyQualifiedName);
-            Assert.True(ContainsPattern(processingTime.Body, fullyQualifiedName), "The message should contain the fully qualified name of the reported message");
+            Assert.True(ContainsPattern(processingTime.Body, FullyQualifiedMessageNameBytes), "The message should contain the fully qualified name of the reported message");
         }
 
         static bool ContainsPattern(byte[] source, byte[] pattern)

@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using Features;
     using global::ServiceControl.Monitoring.Data;
@@ -82,7 +83,7 @@
             readonly ISendMessages dispatcher;
             readonly Dictionary<string, string> headers;
             readonly ReportingOptions options;
-            RawDataReporter processingTimeReporter;
+            RawDataReporter[] reporters;
 
             public ReportingStartupTask(Buffers buffers, UnicastBus bus, ISendMessages dispatcher, Configure config, ReportingOptions options)
             {
@@ -92,7 +93,7 @@
 #pragma warning disable 618
                 var hostInformation = bus.HostInformation;
 #pragma warning restore 618
-                
+
                 headers = new Dictionary<string, string>
                 {
                     {Headers.OriginatingEndpoint, config.Settings.EndpointName()},
@@ -110,18 +111,25 @@
 
             protected override void OnStart()
             {
-                var headers = CreateHeaders("ProcessingTime");
-                processingTimeReporter = new RawDataReporter(BuildSend(headers), buffers.ProcessingTime.Ring, (entries, binaryWriter) => buffers.ProcessingTime.Writer.Write(binaryWriter, entries));
-                processingTimeReporter.Start();
+                reporters = new[]
+                {
+                    BuildReporter("ProcessingTime", buffers.ProcessingTime),
+                };
+            }
+
+            RawDataReporter BuildReporter(string metricType, Buffer buffer)
+            {
+                var reporter = new RawDataReporter(BuildSend(CreateHeaders(metricType)), buffer.Ring, (entries, binaryWriter) => buffer.Writer.Write(binaryWriter, entries));
+                reporter.Start();
+                return reporter;
             }
 
             protected override void OnStop()
             {
-                var stopping = processingTimeReporter.Stop();
-                stopping.GetAwaiter().GetResult();
+                Task.WhenAll(reporters.Select(r => r.Stop())).GetAwaiter().GetResult();
             }
 
-            Func<byte[],Task> BuildSend(Dictionary<string,string> headers)
+            Func<byte[], Task> BuildSend(Dictionary<string, string> headers)
             {
                 var completed = Task.FromResult(0);
                 return body =>
@@ -139,7 +147,7 @@
                     {
                         log.Error($"Error while reporting raw data to {options.ServiceControlMetricsAddress}.", ex);
                     }
-                    
+
                     return completed;
                 };
             }
