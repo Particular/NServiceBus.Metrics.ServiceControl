@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl.Tests
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
@@ -30,16 +31,18 @@
                     }
                 }))
                 .WithEndpoint<MonitoringMock>()
-                .Done(c => c.Body != null)
+                .Done(c => c.Reports.Count == 1)
                 .Run();
 
-            Assert.AreEqual("ProcessingTime", context.Headers["NServiceBus.Metric.Type"]);
-            Assert.AreEqual(CustomInstanceId, context.Headers["NServiceBus.Metric.InstanceId"]);
-            Assert.AreEqual("TaggedLongValueWriterOccurrence", context.Headers["NServiceBus.ContentType"]);
+            var processingTime = context.Reports["ProcessingTime"];
+            var headers = processingTime.Headers;
+            Assert.AreEqual("ProcessingTime", headers["NServiceBus.Metric.Type"]);
+            Assert.AreEqual(CustomInstanceId, headers["NServiceBus.Metric.InstanceId"]);
+            Assert.AreEqual("TaggedLongValueWriterOccurrence", headers["NServiceBus.ContentType"]);
 
             // dummy assert for containing the name of message in the message body
             var fullyQualifiedName = new UTF8Encoding(false).GetBytes(typeof(MyMessage).AssemblyQualifiedName);
-            Assert.True(ContainsPattern(context.Body, fullyQualifiedName), "The message should contain the fully qualified name of the reported message");
+            Assert.True(ContainsPattern(processingTime.Body, fullyQualifiedName), "The message should contain the fully qualified name of the reported message");
         }
 
         static bool ContainsPattern(byte[] source, byte[] pattern)
@@ -56,6 +59,11 @@
         }
 
         public class Context : ScenarioContext
+        {
+            public ConcurrentDictionary<string, Report> Reports = new ConcurrentDictionary<string, Report>();
+        }
+
+        public class Report
         {
             public Dictionary<string, string> Headers { get; set; }
             public byte[] Body { get; set; }
@@ -98,8 +106,16 @@
 
                 public void Invoke(IncomingContext context, Action next)
                 {
-                    Context.Headers = context.PhysicalMessage.Headers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    Context.Body = context.PhysicalMessage.Body.ToArray();
+                    var msg = context.PhysicalMessage;
+                    var metric = msg.Headers["NServiceBus.Metric.Type"];
+
+                    var report = new Report
+                    {
+                        Body = msg.Body.ToArray(),
+                        Headers = msg.Headers
+                    };
+
+                    Context.Reports[metric] = report;
                 }
             }
         }
