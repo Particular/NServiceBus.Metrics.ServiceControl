@@ -55,6 +55,12 @@
                 if (context.PhysicalMessage.Headers.TryGetValue(Headers.EnclosedMessageTypes, out var messageType))
                 {
                     buffers.ReportProcessingTime(processingTime, messageType);
+
+                    if (context.TryGet("IncomingMessage.TimeSent", out DateTime timeSent))
+                    {
+                        var criticalTime = ended - timeSent;
+                        buffers.ReportCriticalTime(criticalTime, messageType);
+                    }
                 }
             }
         }
@@ -105,7 +111,7 @@
             protected override void OnStart()
             {
                 var headers = CreateHeaders("ProcessingTime");
-                processingTimeReporter = new RawDataReporter(BuildSend(headers), buffers.ProcessingTimeBuffer, (entries, binaryWriter) => buffers.ProcessingTimeWriter.Write(binaryWriter, entries));
+                processingTimeReporter = new RawDataReporter(BuildSend(headers), buffers.ProcessingTime.Ring, (entries, binaryWriter) => buffers.ProcessingTime.Writer.Write(binaryWriter, entries));
                 processingTimeReporter.Start();
             }
 

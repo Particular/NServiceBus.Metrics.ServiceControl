@@ -4,16 +4,23 @@
     using System.Threading;
     using global::ServiceControl.Monitoring.Data;
 
+    class Buffer
+    {
+        public readonly RingBuffer Ring = new RingBuffer();
+        public readonly TaggedLongValueWriterV1 Writer = new TaggedLongValueWriterV1();
+    }
+
     class Buffers
     {
-        public readonly RingBuffer ProcessingTimeBuffer = new RingBuffer();
-        public readonly TaggedLongValueWriterV1 ProcessingTimeWriter = new TaggedLongValueWriterV1();
+        public readonly Buffer ProcessingTime = new Buffer();
+        public readonly Buffer CriticalTime = new Buffer();
 
-        void Write(long value, string tag, RingBuffer buffer, Func<string, int> tagProvider)
+        static void Write(long value, string tag, Buffer buffer)
         {
             const int maxAttempts = 10;
 
-            if (buffer.TryWrite(value, tagProvider(tag)))
+            var tagId = buffer.Writer.GetTagId(tag);
+            if (buffer.Ring.TryWrite(value, tagId)) 
             {
                 return;
             }
@@ -22,7 +29,7 @@
             for (var i = 0; i < maxAttempts; i++)
             {
                 spin.SpinOnce();
-                if (buffer.TryWrite(value, tagProvider(tag)))
+                if (buffer.Ring.TryWrite(value, tagId))
                 {
                     return;
                 }
@@ -31,7 +38,12 @@
 
         public void ReportProcessingTime(TimeSpan value, string messageType)
         {
-            Write((long)value.TotalMilliseconds, messageType, ProcessingTimeBuffer, ProcessingTimeWriter.GetTagId);
+            Write((long)value.TotalMilliseconds, messageType, ProcessingTime);
+        }
+
+        public void ReportCriticalTime(TimeSpan value, string messageType)
+        {
+            Write((long)value.TotalMilliseconds, messageType, CriticalTime);
         }
     }
 }
