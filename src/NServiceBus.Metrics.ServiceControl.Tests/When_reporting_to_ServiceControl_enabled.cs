@@ -15,11 +15,14 @@
 
     public class When_reporting_to_ServiceControl_enabled : NServiceBusAcceptanceTest
     {
-        static readonly byte[] FullyQualifiedMessageNameBytes = new UTF8Encoding(false).GetBytes(typeof(MyMessage).AssemblyQualifiedName);
+        static readonly byte[] MyMessageNameBytes = new UTF8Encoding(false).GetBytes(typeof(MyMessage).AssemblyQualifiedName);
+        static readonly byte[] ThrowingMessageNameBytes = new UTF8Encoding(false).GetBytes(typeof(ThrowingMessage).AssemblyQualifiedName);
+
         const string CustomInstanceId = "my-custom-instance";
+        const string Message = "Thrown on purpose!";
 
         [Test]
-        public void Should_report_properly_formatted_message()
+        public void Should_report_properly()
         {
             var context = new Context();
 
@@ -30,9 +33,12 @@
                     {
                         bus.SendLocal(new MyMessage());
                     }
+
+                    bus.SendLocal(new ThrowingMessage());
                 }))
                 .WithEndpoint<MonitoringMock>()
-                .Done(c => c.Reports.Count == 2)
+                .Done(c => c.Reports.Count == 3)
+                .AllowExceptions(ex => true)
                 .Run();
 
             // Processing Time
@@ -41,7 +47,7 @@
                 AssertMetricType(report, "ProcessingTime");
                 AssertInstanceId(report);
                 AssertContentType(report);
-                AssertProperTagging(report);
+                AssertProperTagging(report, MyMessageNameBytes);
             }
 
             // Critical Time
@@ -50,7 +56,16 @@
                 AssertMetricType(report, "CriticalTime");
                 AssertInstanceId(report);
                 AssertContentType(report);
-                AssertProperTagging(report);
+                AssertProperTagging(report, MyMessageNameBytes);
+            }
+
+            // Retries
+            {
+                var report = context.Reports["Retries"];
+                AssertMetricType(report, "Retries");
+                AssertInstanceId(report);
+                AssertContentType(report);
+                AssertProperTagging(report, ThrowingMessageNameBytes);
             }
         }
 
@@ -59,10 +74,10 @@
             Assert.AreEqual(name, report.Headers["NServiceBus.Metric.Type"]);
         }
 
-        static void AssertProperTagging(Report report)
+        static void AssertProperTagging(Report report, byte[] nameBytes)
         {
             // dummy assert for containing the name of message in the message body
-            Assert.True(ContainsPattern(report.Body, FullyQualifiedMessageNameBytes), "The message should contain the fully qualified name of the reported message");
+            Assert.True(ContainsPattern(report.Body, nameBytes), "The message should contain the fully qualified name of the reported message");
         }
 
         static void AssertContentType(Report report)
@@ -113,6 +128,14 @@
                     Thread.Sleep(100);
                 }
             }
+
+            public class ThrowingMessageHandler : IHandleMessages<ThrowingMessage>
+            {
+                public void Handle(ThrowingMessage message)
+                {
+                    throw new Exception(Message);
+                }
+            }
         }
 
         public class MonitoringMock : EndpointConfigurationBuilder
@@ -151,6 +174,9 @@
         }
 
         public class MyMessage : IMessage
+        { }
+
+        public class ThrowingMessage : IMessage
         { }
     }
 }

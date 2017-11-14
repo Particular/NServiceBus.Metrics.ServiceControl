@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using Faults;
     using Features;
     using global::ServiceControl.Monitoring.Data;
     using Logging;
@@ -30,7 +31,22 @@
             var container = context.Container;
 
             container.ConfigureComponent(() => options, DependencyLifecycle.SingleInstance);
-            container.ConfigureComponent(() => buffers, DependencyLifecycle.SingleInstance);
+            container.ConfigureComponent(builder =>
+            {
+                var notifications = builder.Build<BusNotifications>();
+                var observer = new ErrorObserver(buffers.ReportRetry);
+
+                notifications.Errors
+                    .MessageHasBeenSentToSecondLevelRetries
+                    .Subscribe(observer);
+
+                notifications.Errors
+                    .MessageHasFailedAFirstLevelRetryAttempt
+                    .Subscribe(observer);
+
+                return buffers;
+
+            }, DependencyLifecycle.SingleInstance);
             context.Pipeline.Register<ServiceControlMonitoringRegistration>();
             RegisterStartupTask<ReportingStartupTask>();
         }
@@ -64,6 +80,30 @@
                     }
                 }
             }
+        }
+
+        class ErrorObserver : IObserver<FirstLevelRetry>, IObserver<SecondLevelRetry>
+        {
+            readonly Action<string> onMessageTypeRetry;
+
+            public ErrorObserver(Action<string> onMessageTypeRetry)
+            {
+                this.onMessageTypeRetry = onMessageTypeRetry;
+            }
+
+            public void OnNext(FirstLevelRetry value) => Report(value.Headers);
+            public void OnNext(SecondLevelRetry value) => Report(value.Headers);
+
+            void Report(Dictionary<string, string> headers)
+            {
+                if (headers.TryGetValue(Headers.EnclosedMessageTypes, out var msgType))
+                {
+                    onMessageTypeRetry(msgType);
+                }
+            }
+
+            public void OnError(Exception error) { }
+            public void OnCompleted() { }
         }
 
         class ServiceControlMonitoringRegistration : RegisterStep
@@ -114,7 +154,8 @@
                 reporters = new[]
                 {
                     BuildReporter("ProcessingTime", buffers.ProcessingTime),
-                    BuildReporter("CriticalTime", buffers.CriticalTime)
+                    BuildReporter("CriticalTime", buffers.CriticalTime),
+                    BuildReporter("Retries", buffers.Retries),
                 };
             }
 
