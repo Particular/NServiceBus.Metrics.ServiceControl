@@ -32,17 +32,47 @@
                     }
                 }))
                 .WithEndpoint<MonitoringMock>()
-                .Done(c => c.Reports.Count == 1)
+                .Done(c => c.Reports.Count == 2)
                 .Run();
 
-            var processingTime = context.Reports["ProcessingTime"];
-            var headers = processingTime.Headers;
-            Assert.AreEqual("ProcessingTime", headers["NServiceBus.Metric.Type"]);
-            Assert.AreEqual(CustomInstanceId, headers["NServiceBus.Metric.InstanceId"]);
-            Assert.AreEqual("TaggedLongValueWriterOccurrence", headers["NServiceBus.ContentType"]);
+            // Processing Time
+            {
+                var report = context.Reports["ProcessingTime"];
+                AssertMetricType(report, "ProcessingTime");
+                AssertInstanceId(report);
+                AssertContentType(report);
+                AssertProperTagging(report);
+            }
 
+            // Critical Time
+            {
+                var report = context.Reports["CriticalTime"];
+                AssertMetricType(report, "CriticalTime");
+                AssertInstanceId(report);
+                AssertContentType(report);
+                AssertProperTagging(report);
+            }
+        }
+
+        static void AssertMetricType(Report report, string name)
+        {
+            Assert.AreEqual(name, report.Headers["NServiceBus.Metric.Type"]);
+        }
+
+        static void AssertProperTagging(Report report)
+        {
             // dummy assert for containing the name of message in the message body
-            Assert.True(ContainsPattern(processingTime.Body, FullyQualifiedMessageNameBytes), "The message should contain the fully qualified name of the reported message");
+            Assert.True(ContainsPattern(report.Body, FullyQualifiedMessageNameBytes), "The message should contain the fully qualified name of the reported message");
+        }
+
+        static void AssertContentType(Report report)
+        {
+            Assert.AreEqual("TaggedLongValueWriterOccurrence", report.Headers["NServiceBus.ContentType"]);
+        }
+
+        static void AssertInstanceId(Report report)
+        {
+            Assert.AreEqual(CustomInstanceId, report.Headers["NServiceBus.Metric.InstanceId"]);
         }
 
         static bool ContainsPattern(byte[] source, byte[] pattern)

@@ -114,6 +114,7 @@
                 reporters = new[]
                 {
                     BuildReporter("ProcessingTime", buffers.ProcessingTime),
+                    BuildReporter("CriticalTime", buffers.CriticalTime)
                 };
             }
 
