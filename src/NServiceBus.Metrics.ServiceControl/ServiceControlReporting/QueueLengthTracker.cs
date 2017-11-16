@@ -24,7 +24,7 @@
 
         public static void SetUp(MetricsContext metricsContext, FeatureConfigurationContext featureContext)
         {
-            var queueLengthTracker = new QueueLengthTracker(metricsContext);
+            var tracker = new QueueLengthTracker(metricsContext);
 
             var pipeline = featureContext.Pipeline;
             var container = featureContext.Container;
@@ -32,14 +32,19 @@
             //Use HostId as a stable session ID
             var hostId = featureContext.Settings.Get<Guid>("NServiceBus.HostInformation.HostId");
             var localAddress = featureContext.Settings.LocalAddress();
-            container.ConfigureComponent(b => new DispatchQueueLengthBehavior(queueLengthTracker, hostId), DependencyLifecycle.InstancePerCall);
-            container.ConfigureComponent(b => new IncomingQueueLengthBehavior(queueLengthTracker, localAddress), DependencyLifecycle.InstancePerCall);
 
-            pipeline.Register< IncomingQueueLengthRegisterStep>();
-            pipeline.Register< DispatchRegisterStep>();
+            container.ConfigureComponent<DispatchQueueLengthBehavior>(DependencyLifecycle.InstancePerCall)
+                .ConfigureProperty(b => b.SessionId, hostId)
+                .ConfigureProperty(b => b.LengthTracker, tracker);
 
-            pipeline.Register(nameof(DispatchQueueLengthBehavior), typeof(DispatchQueueLengthBehavior), "Enhances messages being sent with queue length headers");
-            pipeline.Register(nameof(IncomingQueueLengthBehavior), typeof(IncomingQueueLengthBehavior), "Reports incoming message queue length headers");
+            container.ConfigureComponent<IncomingQueueLengthBehavior>(DependencyLifecycle.InstancePerCall)
+                .ConfigureProperty(b => b.LengthTracker, tracker)
+                .ConfigureProperty(b => b.InputQueue, localAddress);
+
+            container.ConfigureComponent(() => tracker, DependencyLifecycle.SingleInstance);
+
+            pipeline.Register<IncomingQueueLengthBehavior.Registration>();
+            pipeline.Register<DispatchQueueLengthBehavior.Registration>();
         }
 
         long RegisterSend(string key)
@@ -64,25 +69,10 @@
             return metricsContext.Gauge(key, inputQueue);
         }
 
-        class DispatchRegisterStep : RegisterStep
-        {
-            public DispatchRegisterStep()
-                : base(typeof(DispatchQueueLengthBehavior).Name, typeof(DispatchQueueLengthBehavior), "Enhances messages being sent with queue length headers")
-            {
-                InsertBefore(WellKnownStep.DispatchMessageToTransport);
-            }
-        }
-
         class DispatchQueueLengthBehavior : IBehavior<OutgoingContext>
         {
-            readonly QueueLengthTracker queueLengthTracker;
-            readonly Guid session;
-
-            public DispatchQueueLengthBehavior(QueueLengthTracker queueLengthTracker, Guid session)
-            {
-                this.queueLengthTracker = queueLengthTracker;
-                this.session = session;
-            }
+            public QueueLengthTracker LengthTracker { get; set; }
+            public Guid SessionId { get; set; }
 
             public void Invoke(OutgoingContext context, Action next)
             {
@@ -93,12 +83,12 @@
                 if (options is PublishOptions publishOptions)
                 {
                     key = BuildKey(publishOptions.EventType.AssemblyQualifiedName);
-                    sequence = queueLengthTracker.RegisterSend(key);
+                    sequence = LengthTracker.RegisterSend(key);
                 }
                 else if (options is SendOptions sendOptions)
                 {
                     key = BuildKey(sendOptions.Destination.ToString());
-                    sequence = queueLengthTracker.RegisterSend(key);
+                    sequence = LengthTracker.RegisterSend(key);
                 }
                 else
                 {
@@ -113,29 +103,23 @@
 
             string BuildKey(string destination)
             {
-                return $"{destination}-{session}".ToLowerInvariant();
+                return $"{destination}-{SessionId}".ToLowerInvariant();
             }
-        }
 
-        class IncomingQueueLengthRegisterStep : RegisterStep
-        {
-            public IncomingQueueLengthRegisterStep()
-                : base(typeof(IncomingQueueLengthBehavior).Name, typeof(IncomingQueueLengthBehavior), "Reports incoming message queue length headers")
+            public class Registration : RegisterStep
             {
-                InsertAfter(WellKnownStep.ExecuteLogicalMessages);
+                public Registration()
+                    : base(typeof(DispatchQueueLengthBehavior).Name, typeof(DispatchQueueLengthBehavior), "Enhances messages being sent with queue length headers")
+                {
+                    InsertBefore(WellKnownStep.DispatchMessageToTransport);
+                }
             }
         }
 
         class IncomingQueueLengthBehavior : IBehavior<IncomingContext>
         {
-            readonly QueueLengthTracker queueLengthTracker;
-            readonly Address inputQueue;
-
-            public IncomingQueueLengthBehavior(QueueLengthTracker queueLengthTracker, Address inputQueue)
-            {
-                this.queueLengthTracker = queueLengthTracker;
-                this.inputQueue = inputQueue;
-            }
+            public QueueLengthTracker LengthTracker { get; set; }
+            public Address InputQueue { get; set; }
 
             public void Invoke(IncomingContext context, Action next)
             {
@@ -145,12 +129,22 @@
                 {
                     if (long.TryParse(value, out var sequence))
                     {
-                        queueLengthTracker.RegisterReceive(key, sequence, inputQueue.ToString());
+                        LengthTracker.RegisterReceive(key, sequence, InputQueue.ToString());
                     }
                 }
 
                 next();
             }
+
+            public class Registration : RegisterStep
+            {
+                public Registration()
+                    : base(typeof(IncomingQueueLengthBehavior).Name, typeof(IncomingQueueLengthBehavior), "Reports incoming message queue length headers")
+                {
+                    InsertAfter(WellKnownStep.ExecuteLogicalMessages);
+                }
+            }
+
         }
     }
 }

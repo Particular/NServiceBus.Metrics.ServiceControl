@@ -26,6 +26,10 @@
         {
             var context = new Context();
 
+            const string retries = "Retries";
+            const string processing = "ProcessingTime";
+            const string critical = "CriticalTime";
+
             Scenario.Define(context)
                 .WithEndpoint<Sender>(b => b.Given((bus, c) =>
                 {
@@ -37,14 +41,14 @@
                     bus.SendLocal(new ThrowingMessage());
                 }))
                 .WithEndpoint<MonitoringMock>()
-                .Done(c => c.Reports.Count == 3)
+                .Done(c => c.Reports.ContainsKey(retries) && c.Reports.ContainsKey(processing) && c.Reports.ContainsKey(critical))
                 .AllowExceptions(ex => true)
                 .Run();
 
             // Processing Time
             {
-                var report = context.Reports["ProcessingTime"];
-                AssertMetricType(report, "ProcessingTime");
+                var report = context.Reports[processing];
+                AssertMetricType(report, processing);
                 AssertInstanceId(report);
                 AssertContentType(report);
                 AssertProperTagging(report, MyMessageNameBytes);
@@ -52,8 +56,8 @@
 
             // Critical Time
             {
-                var report = context.Reports["CriticalTime"];
-                AssertMetricType(report, "CriticalTime");
+                var report = context.Reports[critical];
+                AssertMetricType(report, critical);
                 AssertInstanceId(report);
                 AssertContentType(report);
                 AssertProperTagging(report, MyMessageNameBytes);
@@ -61,8 +65,8 @@
 
             // Retries
             {
-                var report = context.Reports["Retries"];
-                AssertMetricType(report, "Retries");
+                var report = context.Reports[retries];
+                AssertMetricType(report, retries);
                 AssertInstanceId(report);
                 AssertContentType(report);
                 AssertProperTagging(report, ThrowingMessageNameBytes);
