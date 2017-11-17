@@ -3,12 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using NServiceBus.AcceptanceTesting;
 using NServiceBus.Features;
-using NServiceBus.ObjectBuilder;
-using NServiceBus.Pipeline;
 using NUnit.Framework;
 
 namespace NServiceBus.Metrics.ServiceControl.Tests
@@ -16,7 +13,6 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
     using Config;
     using Config.ConfigurationSource;
     using EndpointTemplates;
-    using Outbox;
 
     public class When_publishing_message : NServiceBusAcceptanceTest
     {
@@ -69,7 +65,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
             }
         }
 
-        static string AssertHeaders(IProducerConsumerCollection<IReadOnlyDictionary<string, string>> oneReceiverHeaders)
+        static string AssertHeaders(IProducerConsumerCollection<IDictionary<string, string>> oneReceiverHeaders)
         {
             const string keyHeader = "NServiceBus.Metrics.QueueLength.Key";
             const string valueHeader = "NServiceBus.Metrics.QueueLength.Value";
@@ -120,10 +116,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
                         }
                     });
 
-                    c.Pipeline.Register(new PreQueueLengthStep());
-                    c.Pipeline.Register(new PostQueueLengthStep());
-
-                    var address = NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
+                    var address = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
                     c.SendMetricDataToServiceControl(address);
                 });
             }
@@ -194,7 +187,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
                 {
                     if (TestContext.TrackReports())
                     {
-                        TestContext.Data = message.Data.ToString();
+                        //TestContext.Data = message.Data.ToString();
                     }
                 }
             }
@@ -207,56 +200,5 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
         public class TestEventMessage2 : IEvent
         {
         }
-
-        class PreQueueLengthStep : RegisterStep
-        {
-            public PreQueueLengthStep()
-                : base("PreQueueLengthStep", typeof(Behavior), "Registers behavior replacing context")
-            {
-                InsertBefore("DispatchQueueLengthBehavior");
-            }
-
-            class Behavior : IBehavior<IDispatchContext, IDispatchContext>
-            {
-                public Task Invoke(IDispatchContext context, Func<IDispatchContext, Task> next)
-                {
-                    return next(new MultiDispatchContext(context));
-                }
-            }
-        }
-
-        class PostQueueLengthStep : RegisterStep
-        {
-            public PostQueueLengthStep()
-                : base("PostQueueLengthStep", typeof(Behavior), "Registers behavior restoring context")
-            {
-                InsertAfter("DispatchQueueLengthBehavior");
-            }
-
-            class Behavior : IBehavior<IDispatchContext, IDispatchContext>
-            {
-                public Task Invoke(IDispatchContext context, Func<IDispatchContext, Task> next)
-                {
-                    return next(((MultiDispatchContext)context).Original);
-                }
-            }
-        }
-
-        class MultiDispatchContext : IDispatchContext
-        {
-            public MultiDispatchContext(IDispatchContext original)
-            {
-                Extensions = original.Extensions;
-                Builder = original.Builder;
-                Operations = original.Operations.Select(t => new TransportOperation(t.Message, new MulticastAddressTag(Type.GetType(t.Message.Headers[Headers.EnclosedMessageTypes])), t.RequiredDispatchConsistency, t.DeliveryConstraints)).ToArray();
-                Original = original;
-            }
-
-            public IDispatchContext Original { get; }
-            public ContextBag Extensions { get; }
-            public IBuilder Builder { get; }
-            public IEnumerable<TransportOperation> Operations { get; }
-        }
     }
-
 }

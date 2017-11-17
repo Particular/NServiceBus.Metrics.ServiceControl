@@ -2,7 +2,6 @@
 {
     using System;
     using AcceptanceTesting;
-    using AcceptanceTesting.Support;
     using Pipeline;
     using Pipeline.Contexts;
 
@@ -11,31 +10,20 @@
         public static void OnEndpointSubscribed<TContext>(this BusConfiguration configuration, Action<SubscriptionEventArgs, TContext> action)
         where TContext : ScenarioContext
         {
-            configuration.Pipeline.Register("NotifySubscriptionBehavior", builder =>
+            configuration.RegisterComponents(components =>
             {
-                var context = builder.Build<TContext>();
-                return new SubscriptionBehavior<TContext>(action, context, MessageIntentEnum.Subscribe);
-            }, "Provides notifications when endpoints subscribe");
+                components.ConfigureComponent(() => action, DependencyLifecycle.SingleInstance);
+            });
+            configuration.Pipeline.Register<SubscriptionBehavior<TContext>.Registration>();
         }
 
-        public static void OnEndpointUnsubscribed<TContext>(this EndpointConfiguration configuration, Action<SubscriptionEventArgs, TContext> action)
-        where TContext : ScenarioContext
-        {
-            configuration.Pipeline.Register("NotifyUnsubscriptionBehavior", builder =>
-            {
-                var context = builder.Build<TContext>();
-                return new SubscriptionBehavior<TContext>(action, context, MessageIntentEnum.Unsubscribe);
-            }, "Provides notifications when endpoints unsubscribe");
-        }
-
-        class SubscriptionBehavior<TContext> : IBehavior<IncomingContext> 
+        class SubscriptionBehavior<TContext> : IBehavior<IncomingContext>
             where TContext : ScenarioContext
         {
-            public SubscriptionBehavior(Action<SubscriptionEventArgs, TContext> action, TContext scenarioContext, MessageIntentEnum intentToHandle)
+            public SubscriptionBehavior(Action<SubscriptionEventArgs, TContext> action, TContext scenarioContext)
             {
                 this.action = action;
                 this.scenarioContext = scenarioContext;
-                this.intentToHandle = intentToHandle;
             }
 
             public void Invoke(IncomingContext context, Action next)
@@ -43,20 +31,20 @@
                 next();
 
                 var msg = context.PhysicalMessage;
+                var headers = msg.Headers;
 
                 var subscriptionMessageType = GetSubscriptionMessageTypeFrom(msg);
                 if (subscriptionMessageType != null)
                 {
-                    string returnAddress;
-                    if (!msg.Headers.TryGetValue(Headers.SubscriberTransportAddress, out returnAddress))
-                    {
-                        msg.Headers.TryGetValue(Headers.ReplyToAddress, out returnAddress);
-                    }
-
-                    var intent = (MessageIntentEnum)Enum.Parse(typeof(MessageIntentEnum), msg.Headers[Headers.MessageIntent], true);
-                    if (intent != intentToHandle)
+                    var intent = (MessageIntentEnum)Enum.Parse(typeof(MessageIntentEnum), headers[Headers.MessageIntent], true);
+                    if (intent != MessageIntentEnum.Subscribe)
                     {
                         return;
+                    }
+
+                    if (headers.TryGetValue("Headers.SubscriberTransportAddress", out var returnAddress) == false)
+                    {
+                        headers.TryGetValue(Headers.ReplyToAddress, out returnAddress);
                     }
 
                     action(new SubscriptionEventArgs
@@ -74,15 +62,14 @@
 
             Action<SubscriptionEventArgs, TContext> action;
             TContext scenarioContext;
-            MessageIntentEnum intentToHandle;
-        }
 
-        class Registration<SubBehavior> : RegisterStep
-        {
-            public Registration() 
-                : base(nameof(SubBehavior), typeof(SubBehavior), nameof(SubBehavior))
+            public class Registration : RegisterStep
             {
-                InsertAfter(WellKnownStep.MutateIncomingTransportMessage);
+                public Registration()
+                    : base(nameof(SubscriptionBehavior<TContext>), typeof(SubscriptionBehavior<TContext>), nameof(SubscriptionBehavior<TContext>))
+                {
+                    InsertAfter(WellKnownStep.MutateIncomingTransportMessage);
+                }
             }
         }
     }
