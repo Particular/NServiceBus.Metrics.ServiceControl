@@ -2,7 +2,9 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
+    using Faults;
     using Features;
     using global::ServiceControl.Monitoring.Data;
     using Logging;
@@ -29,7 +31,22 @@
             var container = context.Container;
 
             container.ConfigureComponent(() => options, DependencyLifecycle.SingleInstance);
-            container.ConfigureComponent(() => buffers, DependencyLifecycle.SingleInstance);
+            container.ConfigureComponent(builder =>
+            {
+                var notifications = builder.Build<BusNotifications>();
+                var observer = new ErrorObserver(buffers.ReportRetry);
+
+                notifications.Errors
+                    .MessageHasBeenSentToSecondLevelRetries
+                    .Subscribe(observer);
+
+                notifications.Errors
+                    .MessageHasFailedAFirstLevelRetryAttempt
+                    .Subscribe(observer);
+
+                return buffers;
+
+            }, DependencyLifecycle.SingleInstance);
             context.Pipeline.Register<ServiceControlMonitoringRegistration>();
             RegisterStartupTask<ReportingStartupTask>();
         }
@@ -55,8 +72,38 @@
                 if (context.PhysicalMessage.Headers.TryGetValue(Headers.EnclosedMessageTypes, out var messageType))
                 {
                     buffers.ReportProcessingTime(processingTime, messageType);
+
+                    if (context.TryGet("IncomingMessage.TimeSent", out DateTime timeSent))
+                    {
+                        var criticalTime = ended - timeSent;
+                        buffers.ReportCriticalTime(criticalTime, messageType);
+                    }
                 }
             }
+        }
+
+        class ErrorObserver : IObserver<FirstLevelRetry>, IObserver<SecondLevelRetry>
+        {
+            readonly Action<string> onMessageTypeRetry;
+
+            public ErrorObserver(Action<string> onMessageTypeRetry)
+            {
+                this.onMessageTypeRetry = onMessageTypeRetry;
+            }
+
+            public void OnNext(FirstLevelRetry value) => Report(value.Headers);
+            public void OnNext(SecondLevelRetry value) => Report(value.Headers);
+
+            void Report(Dictionary<string, string> headers)
+            {
+                if (headers.TryGetValue(Headers.EnclosedMessageTypes, out var msgType))
+                {
+                    onMessageTypeRetry(msgType);
+                }
+            }
+
+            public void OnError(Exception error) { }
+            public void OnCompleted() { }
         }
 
         class ServiceControlMonitoringRegistration : RegisterStep
@@ -76,7 +123,7 @@
             readonly ISendMessages dispatcher;
             readonly Dictionary<string, string> headers;
             readonly ReportingOptions options;
-            RawDataReporter processingTimeReporter;
+            RawDataReporter[] reporters;
 
             public ReportingStartupTask(Buffers buffers, UnicastBus bus, ISendMessages dispatcher, Configure config, ReportingOptions options)
             {
@@ -86,7 +133,7 @@
 #pragma warning disable 618
                 var hostInformation = bus.HostInformation;
 #pragma warning restore 618
-                
+
                 headers = new Dictionary<string, string>
                 {
                     {Headers.OriginatingEndpoint, config.Settings.EndpointName()},
@@ -104,18 +151,27 @@
 
             protected override void OnStart()
             {
-                var headers = CreateHeaders("ProcessingTime");
-                processingTimeReporter = new RawDataReporter(BuildSend(headers), buffers.ProcessingTimeBuffer, (entries, binaryWriter) => buffers.ProcessingTimeWriter.Write(binaryWriter, entries));
-                processingTimeReporter.Start();
+                reporters = new[]
+                {
+                    BuildReporter("ProcessingTime", buffers.ProcessingTime),
+                    BuildReporter("CriticalTime", buffers.CriticalTime),
+                    BuildReporter("Retries", buffers.Retries),
+                };
+            }
+
+            RawDataReporter BuildReporter(string metricType, Buffer buffer)
+            {
+                var reporter = new RawDataReporter(BuildSend(CreateHeaders(metricType)), buffer.Ring, (entries, binaryWriter) => buffer.Writer.Write(binaryWriter, entries));
+                reporter.Start();
+                return reporter;
             }
 
             protected override void OnStop()
             {
-                var stopping = processingTimeReporter.Stop();
-                stopping.GetAwaiter().GetResult();
+                Task.WhenAll(reporters.Select(r => r.Stop())).GetAwaiter().GetResult();
             }
 
-            Func<byte[],Task> BuildSend(Dictionary<string,string> headers)
+            Func<byte[], Task> BuildSend(Dictionary<string, string> headers)
             {
                 var completed = Task.FromResult(0);
                 return body =>
@@ -133,7 +189,7 @@
                     {
                         log.Error($"Error while reporting raw data to {options.ServiceControlMetricsAddress}.", ex);
                     }
-                    
+
                     return completed;
                 };
             }

@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl.Tests
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
@@ -14,10 +15,14 @@
 
     public class When_reporting_to_ServiceControl_enabled : NServiceBusAcceptanceTest
     {
+        static readonly byte[] MyMessageNameBytes = new UTF8Encoding(false).GetBytes(typeof(MyMessage).AssemblyQualifiedName);
+        static readonly byte[] ThrowingMessageNameBytes = new UTF8Encoding(false).GetBytes(typeof(ThrowingMessage).AssemblyQualifiedName);
+
         const string CustomInstanceId = "my-custom-instance";
+        const string Message = "Thrown on purpose!";
 
         [Test]
-        public void Should_report_properly_formatted_message()
+        public void Should_report_properly()
         {
             var context = new Context();
 
@@ -28,18 +33,61 @@
                     {
                         bus.SendLocal(new MyMessage());
                     }
+
+                    bus.SendLocal(new ThrowingMessage());
                 }))
                 .WithEndpoint<MonitoringMock>()
-                .Done(c => c.Body != null)
+                .Done(c => c.Reports.Count == 3)
+                .AllowExceptions(ex => true)
                 .Run();
 
-            Assert.AreEqual("ProcessingTime", context.Headers["NServiceBus.Metric.Type"]);
-            Assert.AreEqual(CustomInstanceId, context.Headers["NServiceBus.Metric.InstanceId"]);
-            Assert.AreEqual("TaggedLongValueWriterOccurrence", context.Headers["NServiceBus.ContentType"]);
+            // Processing Time
+            {
+                var report = context.Reports["ProcessingTime"];
+                AssertMetricType(report, "ProcessingTime");
+                AssertInstanceId(report);
+                AssertContentType(report);
+                AssertProperTagging(report, MyMessageNameBytes);
+            }
 
+            // Critical Time
+            {
+                var report = context.Reports["CriticalTime"];
+                AssertMetricType(report, "CriticalTime");
+                AssertInstanceId(report);
+                AssertContentType(report);
+                AssertProperTagging(report, MyMessageNameBytes);
+            }
+
+            // Retries
+            {
+                var report = context.Reports["Retries"];
+                AssertMetricType(report, "Retries");
+                AssertInstanceId(report);
+                AssertContentType(report);
+                AssertProperTagging(report, ThrowingMessageNameBytes);
+            }
+        }
+
+        static void AssertMetricType(Report report, string name)
+        {
+            Assert.AreEqual(name, report.Headers["NServiceBus.Metric.Type"]);
+        }
+
+        static void AssertProperTagging(Report report, byte[] nameBytes)
+        {
             // dummy assert for containing the name of message in the message body
-            var fullyQualifiedName = new UTF8Encoding(false).GetBytes(typeof(MyMessage).AssemblyQualifiedName);
-            Assert.True(ContainsPattern(context.Body, fullyQualifiedName), "The message should contain the fully qualified name of the reported message");
+            Assert.True(ContainsPattern(report.Body, nameBytes), "The message should contain the fully qualified name of the reported message");
+        }
+
+        static void AssertContentType(Report report)
+        {
+            Assert.AreEqual("TaggedLongValueWriterOccurrence", report.Headers["NServiceBus.ContentType"]);
+        }
+
+        static void AssertInstanceId(Report report)
+        {
+            Assert.AreEqual(CustomInstanceId, report.Headers["NServiceBus.Metric.InstanceId"]);
         }
 
         static bool ContainsPattern(byte[] source, byte[] pattern)
@@ -57,6 +105,11 @@
 
         public class Context : ScenarioContext
         {
+            public ConcurrentDictionary<string, Report> Reports = new ConcurrentDictionary<string, Report>();
+        }
+
+        public class Report
+        {
             public Dictionary<string, string> Headers { get; set; }
             public byte[] Body { get; set; }
         }
@@ -73,6 +126,14 @@
                 public void Handle(MyMessage message)
                 {
                     Thread.Sleep(100);
+                }
+            }
+
+            public class ThrowingMessageHandler : IHandleMessages<ThrowingMessage>
+            {
+                public void Handle(ThrowingMessage message)
+                {
+                    throw new Exception(Message);
                 }
             }
         }
@@ -98,13 +159,24 @@
 
                 public void Invoke(IncomingContext context, Action next)
                 {
-                    Context.Headers = context.PhysicalMessage.Headers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                    Context.Body = context.PhysicalMessage.Body.ToArray();
+                    var msg = context.PhysicalMessage;
+                    var metric = msg.Headers["NServiceBus.Metric.Type"];
+
+                    var report = new Report
+                    {
+                        Body = msg.Body.ToArray(),
+                        Headers = msg.Headers
+                    };
+
+                    Context.Reports[metric] = report;
                 }
             }
         }
 
         public class MyMessage : IMessage
+        { }
+
+        public class ThrowingMessage : IMessage
         { }
     }
 }
