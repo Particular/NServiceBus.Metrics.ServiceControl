@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Newtonsoft.Json.Linq;
 using NServiceBus.AcceptanceTesting;
 using NServiceBus.Features;
 using NUnit.Framework;
@@ -49,18 +48,18 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
             AssertHeaders(context.Headers2)
         };
 
-            var data = JObject.Parse(context.Data);
-            var counters = (JArray)data["Counters"];
-            var counterTokens = counters.Where(c => c.Value<string>("Name").StartsWith("Sent sequence for"));
+            var data = context.Data;
+            var counters = data.Counters;
+            var counterTokens = counters.Where(c => c.Name.StartsWith("Sent sequence for"));
 
             foreach (var counter in counterTokens)
             {
-                var tags = counter["Tags"].ToObject<string[]>();
+                var tags = counter.Tags;
                 var counterBasedKey = tags.GetTagValue("key");
                 var type = tags.GetTagValue("type");
 
                 CollectionAssert.Contains(sessionIds, counterBasedKey);
-                Assert.AreEqual(2, counter.Value<int>("Count"));
+                Assert.AreEqual(2, counter.Count);
                 Assert.AreEqual("queue-length.sent", type);
             }
         }
@@ -91,7 +90,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
             public ConcurrentQueue<IDictionary<string, string>> Headers1 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
             public ConcurrentQueue<IDictionary<string, string>> Headers2 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
 
-            public string Data { get; set; }
+            public MetricsContext Data { get; set; }
 
             public Func<bool> TrackReports;
             public Context()
@@ -187,7 +186,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
                 {
                     if (TestContext.TrackReports())
                     {
-                        //TestContext.Data = message.Data.ToString();
+                        TestContext.Data = message.Data;
                     }
                 }
             }
