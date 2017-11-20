@@ -79,7 +79,7 @@
                 headers.Add(MetricHeaders.MetricInstanceId, instanceId);
             }
 
-            container.ConfigureComponent<ServiceControlReporting>(DependencyLifecycle.InstancePerCall)
+            container.ConfigureComponent<ServiceControlReporting>(DependencyLifecycle.SingleInstance)
                 .ConfigureProperty(task => task.HeaderValues, headers);
 
             RegisterStartupTask<ReportingStartupTask>();
