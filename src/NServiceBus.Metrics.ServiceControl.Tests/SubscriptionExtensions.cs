@@ -1,89 +1,63 @@
-﻿namespace NServiceBus.Metrics.ServiceControl.Tests
+﻿namespace NServiceBus.AcceptanceTests.PubSub
 {
     using System;
+    using System.Linq;
     using AcceptanceTesting;
     using Pipeline;
     using Pipeline.Contexts;
+    using Unicast.Subscriptions;
 
-    public static class SubscriptionExtensions
+    static class SubscriptionBehaviorExtensions
     {
-        public static void OnEndpointSubscribed<TContext>(this BusConfiguration configuration, Action<SubscriptionEventArgs, TContext> action)
-        where TContext : ScenarioContext
+        public static void OnEndpointSubscribed<TContext>(this BusConfiguration b, Action<SubscriptionEventArgs, TContext> action) where TContext : ScenarioContext
         {
-            configuration.RegisterComponents(components =>
+            b.Pipeline.Register<SubscriptionBehavior<TContext>.Registration>();
+
+            b.RegisterComponents(c => c.ConfigureComponent(builder =>
             {
-                components.ConfigureComponent(() => action, DependencyLifecycle.SingleInstance);
-            });
-            configuration.Pipeline.Register<SubscriptionBehavior<TContext>.Registration>();
-        }
-
-        class SubscriptionBehavior<TContext> : IBehavior<IncomingContext>
-            where TContext : ScenarioContext
-        {
-            public SubscriptionBehavior(Action<SubscriptionEventArgs, TContext> action, TContext scenarioContext)
-            {
-                this.action = action;
-                this.scenarioContext = scenarioContext;
-            }
-
-            public void Invoke(IncomingContext context, Action next)
-            {
-                next();
-
-                var msg = context.PhysicalMessage;
-                var headers = msg.Headers;
-
-                var subscriptionMessageType = GetSubscriptionMessageTypeFrom(msg);
-                if (subscriptionMessageType != null)
-                {
-                    var intent = (MessageIntentEnum)Enum.Parse(typeof(MessageIntentEnum), headers[Headers.MessageIntent], true);
-                    if (intent != MessageIntentEnum.Subscribe)
-                    {
-                        return;
-                    }
-
-                    if (headers.TryGetValue("Headers.SubscriberTransportAddress", out var returnAddress) == false)
-                    {
-                        headers.TryGetValue(Headers.ReplyToAddress, out returnAddress);
-                    }
-
-                    action(new SubscriptionEventArgs
-                    {
-                        MessageType = subscriptionMessageType,
-                        SubscriberReturnAddress = returnAddress
-                    }, scenarioContext);
-                }
-            }
-
-            static string GetSubscriptionMessageTypeFrom(TransportMessage msg)
-            {
-                return msg.Headers.TryGetValue(Headers.SubscriptionMessageType, out var headerValue) ? headerValue : null;
-            }
-
-            Action<SubscriptionEventArgs, TContext> action;
-            TContext scenarioContext;
-
-            public class Registration : RegisterStep
-            {
-                public Registration()
-                    : base(nameof(SubscriptionBehavior<TContext>), typeof(SubscriptionBehavior<TContext>), nameof(SubscriptionBehavior<TContext>))
-                {
-                    InsertAfter(WellKnownStep.MutateIncomingTransportMessage);
-                }
-            }
+                var context = builder.Build<TContext>();
+                return new SubscriptionBehavior<TContext>(action, context);
+            }, DependencyLifecycle.InstancePerCall));
         }
     }
 
-    public class SubscriptionEventArgs
+    class SubscriptionBehavior<TContext> : IBehavior<IncomingContext> where TContext : ScenarioContext
     {
-        /// <summary>
-        /// The address of the subscriber.
-        /// </summary>
-        public string SubscriberReturnAddress { get; set; }
+        readonly Action<SubscriptionEventArgs, TContext> action;
+        readonly TContext scenarioContext;
 
-        /// <summary>
-        /// The type of message the client subscribed to.
-        /// </summary>
-        public string MessageType { get; set; }
+        public SubscriptionBehavior(Action<SubscriptionEventArgs, TContext> action, TContext scenarioContext)
+        {
+            this.action = action;
+            this.scenarioContext = scenarioContext;
+        }
+
+        public void Invoke(IncomingContext context, Action next)
+        {
+            next();
+            var subscriptionMessageType = GetSubscriptionMessageTypeFrom(context.PhysicalMessage);
+            if (subscriptionMessageType != null)
+            {
+                action(new SubscriptionEventArgs
+                {
+                    MessageType = subscriptionMessageType,
+                    SubscriberReturnAddress = context.PhysicalMessage.ReplyToAddress
+                }, scenarioContext);
+            }
+        }
+
+        static string GetSubscriptionMessageTypeFrom(TransportMessage msg)
+        {
+            return (from header in msg.Headers where header.Key == Headers.SubscriptionMessageType select header.Value).FirstOrDefault();
+        }
+
+        internal class Registration : RegisterStep
+        {
+            public Registration()
+                : base("SubscriptionBehavior", typeof(SubscriptionBehavior<TContext>), "So we can get subscription events")
+            {
+                InsertBefore(WellKnownStep.CreateChildContainer);
+            }
+        }
     }
 }
