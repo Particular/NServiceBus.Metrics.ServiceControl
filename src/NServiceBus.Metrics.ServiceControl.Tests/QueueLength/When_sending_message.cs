@@ -10,23 +10,30 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
     using Config;
     using Config.ConfigurationSource;
     using EndpointTemplates;
-    using Newtonsoft.Json.Linq;
 
     public class When_sending_message : NServiceBusAcceptanceTest
     {
         static string ReceiverAddress1 => AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Receiver1));
         static string ReceiverAddress2 => AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Receiver2));
 
-        protected class QueueLengthContext : ScenarioContext
+        class Context : ScenarioContext
         {
+            public bool ShouldTrackData()
+            {
+                return Headers1.Count == 2 && Headers2.Count == 2;
+            }
+
+            public ConcurrentQueue<IDictionary<string, string>> Headers1 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
+            public ConcurrentQueue<IDictionary<string, string>> Headers2 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
             public MetricsContext Data { get; set; }
-            public Func<bool> TrackReports = () => true;
         }
 
         [Test]
         public void Should_enhance_it_with_queue_length_properties()
         {
             var context = Scenario.Define<Context>()
+                .WithEndpoint<Receiver1>()
+                .WithEndpoint<Receiver2>()
                 .WithEndpoint<Sender>(c =>
                 {
                     c.When(s =>
@@ -36,16 +43,13 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
                         s.Send(a1, new TestMessage());
 
                         var a2 = Address.Parse(ReceiverAddress2);
-                        s.Send(a2,new TestMessage());
-                        s.Send(a2,new TestMessage());
+                        s.Send(a2, new TestMessage());
+                        s.Send(a2, new TestMessage());
                     });
                 })
-                .WithEndpoint<Receiver1>()
-                .WithEndpoint<Receiver2>()
                 .WithEndpoint<MonitoringSpy>()
                 .Done(c => c.Headers1.Count == 2 && c.Headers2.Count == 2 && c.Data != null)
                 .Run();
-
             AssertSequencesReported(context);
         }
 
@@ -94,17 +98,6 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
 
         static readonly Guid HostId = Guid.NewGuid();
 
-        class Context : QueueLengthContext
-        {
-            public Context()
-            {
-                TrackReports = () => Headers1.Count == 2 && Headers2.Count == 2;
-            }
-
-            public ConcurrentQueue<IDictionary<string, string>> Headers1 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
-            public ConcurrentQueue<IDictionary<string, string>> Headers2 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
-        }
-
         class Sender : EndpointConfigurationBuilder
         {
             public Sender()
@@ -113,7 +106,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
                 {
                     var runningInstance = c.UniquelyIdentifyRunningInstance();
                     runningInstance.UsingCustomIdentifier(HostId);
-                    
+
                     var address = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
                     c.SendMetricDataToServiceControl(address);
                 });
@@ -145,7 +138,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
             }
         }
 
-        protected class MonitoringSpy : EndpointConfigurationBuilder
+        class MonitoringSpy : EndpointConfigurationBuilder
         {
             public MonitoringSpy()
             {
@@ -157,11 +150,11 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
 
             public class MetricHandler : IHandleMessages<MetricReport>
             {
-                public QueueLengthContext TestContext { get; set; }
+                public Context TestContext { get; set; }
 
                 public void Handle(MetricReport message)
                 {
-                    if (TestContext.TrackReports())
+                    if (TestContext.ShouldTrackData())
                     {
                         TestContext.Data = message.Data;
                     }
@@ -199,7 +192,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
             }
         }
 
-        public class TestMessage : ICommand
+        class TestMessage : ICommand
         {
         }
     }

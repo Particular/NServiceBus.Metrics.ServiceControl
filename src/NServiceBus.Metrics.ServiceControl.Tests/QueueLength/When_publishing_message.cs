@@ -171,7 +171,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
             }
         }
 
-        protected class MonitoringSpy : EndpointConfigurationBuilder
+        class MonitoringSpy : EndpointConfigurationBuilder
         {
             public MonitoringSpy()
             {
@@ -200,11 +200,11 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
             }
         }
 
-        public class TestEventMessage1 : IEvent
+        class TestEventMessage1 : IEvent
         {
         }
 
-        public class TestEventMessage2 : IEvent
+        class TestEventMessage2 : IEvent
         {
         }
     }

@@ -16,7 +16,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
         const double SequenceValue = 42;
         static readonly string SequenceKey = Guid.NewGuid().ToString();
 
-        protected class QueueLengthContext : ScenarioContext
+        class QueueLengthContext : ScenarioContext
         {
             public MetricsContext Data { get; set; }
             public Func<bool> TrackReports = () => true;
@@ -48,7 +48,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
 
         static bool IsReceivedSequence(Gauge g) => g.Name.StartsWith("Received sequence for");
 
-        protected class MonitoringSpy : EndpointConfigurationBuilder
+        class MonitoringSpy : EndpointConfigurationBuilder
         {
             public MonitoringSpy()
             {
@@ -100,7 +100,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
             }
         }
 
-        public class TestMessage : ICommand
+        class TestMessage : ICommand
         {
         }
     }
