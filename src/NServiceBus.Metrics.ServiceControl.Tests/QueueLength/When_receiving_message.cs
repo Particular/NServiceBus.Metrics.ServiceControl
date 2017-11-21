@@ -1,110 +1,107 @@
-﻿//using System;
-//using System.Linq;
-//using System.Threading.Tasks;
-//using Newtonsoft.Json.Linq;
-//using NServiceBus;
-//using NServiceBus.AcceptanceTesting;
-//using NServiceBus.AcceptanceTests;
-//using NServiceBus.AcceptanceTests.EndpointTemplates;
-//using NServiceBus.Metrics;
-//using NUnit.Framework;
+﻿using System;
+using System.Linq;
+using NServiceBus.AcceptanceTesting;
+using NUnit.Framework;
 
-//public class When_receiving_message : NServiceBusAcceptanceTest
-//{
+namespace NServiceBus.Metrics.ServiceControl.Tests
+{
+    using Config;
+    using Config.ConfigurationSource;
+    using EndpointTemplates;
 
-//    const string KeyHeader = "NServiceBus.Metrics.QueueLength.Key";
-//    const string ValueHeader = "NServiceBus.Metrics.QueueLength.Value";
-//    const string SequenceValue = "42";
-//    static readonly string SequenceKey = Guid.NewGuid().ToString();
+    public class When_receiving_message : NServiceBusAcceptanceTest
+    {
+        const string KeyHeader = "NServiceBus.Metrics.QueueLength.Key";
+        const string ValueHeader = "NServiceBus.Metrics.QueueLength.Value";
+        const double SequenceValue = 42;
+        static readonly string SequenceKey = Guid.NewGuid().ToString();
 
-//    protected class QueueLengthContext : ScenarioContext
-//    {
-//        public string Data { get; set; }
+        protected class QueueLengthContext : ScenarioContext
+        {
+            public MetricsContext Data { get; set; }
+            public Func<bool> TrackReports = () => true;
+        }
 
-//        public Func<bool> TrackReports = () => true;
-//    }
-//    [Test]
-//    public async Task Should_report_sequence_for_session()
-//    {
-//        var context = await Scenario.Define<QueueLengthContext>()
-//            .WithEndpoint<Receiver>(c => c.When(async s =>
-//            {
-//                var options = new SendOptions();
-//                options.RouteToThisEndpoint();
+        [Test]
+        public void Should_report_sequence_for_session()
+        {
+            var context = Scenario.Define<QueueLengthContext>()
+                .WithEndpoint<Receiver>(c => c.When(s =>
+                {
+                    s.OutgoingHeaders[KeyHeader] = SequenceKey;
+                    s.OutgoingHeaders[ValueHeader] = SequenceValue.ToString();
+                    s.SendLocal(new TestMessage());
+                }))
+                .WithEndpoint<MonitoringSpy>()
+                .Done(c => c.Data != null && c.Data.Gauges.Any(IsReceivedSequence))
+                .Run();
 
-//                options.SetHeader(KeyHeader, SequenceKey);
-//                options.SetHeader(ValueHeader, SequenceValue);
-//                await s.Send(new TestMessage(), options);
-//            }))
-//            .WithEndpoint<MonitoringSpy>()
-//            .Done(c => c.Data != null && c.Data.Contains("Received sequence for"))
-//            .Run()
-//            .ConfigureAwait(false);
+            var data = context.Data;
+            var gauges = data.Gauges;
+            var gauge = gauges.Single(IsReceivedSequence);
+            var tags = gauge.Tags;
 
-//        var data = JObject.Parse(context.Data);
-//        var gauges = (JArray)data["Gauges"];
-//        var gauge = gauges.Single(c => c.Value<string>("Name").StartsWith("Received sequence for"));
-//        var tags = gauge["Tags"].ToObject<string[]>();
+            Assert.AreEqual("queue-length.received", tags.GetTagValue("type"));
+            Assert.AreEqual(SequenceKey, tags.GetTagValue("key"));
+            Assert.AreEqual(SequenceValue, gauge.Value);
+        }
 
-//        Assert.AreEqual("queue-length.received", tags.GetTagValue("type"));
-//        Assert.AreEqual(SequenceKey, tags.GetTagValue("key"));
-//        Assert.AreEqual(SequenceValue, gauge.Value<string>("Value"));
-//    }
+        static bool IsReceivedSequence(Gauge g) => g.Name.StartsWith("Received sequence for");
 
+        protected class MonitoringSpy : EndpointConfigurationBuilder
+        {
+            public MonitoringSpy()
+            {
+                EndpointSetup<DefaultServer>(c =>
+                {
+                    c.UseSerialization<JsonSerializer>();
+                }).IncludeType<MetricReport>();
+            }
 
-//    protected class MonitoringSpy : EndpointConfigurationBuilder
-//    {
-//        public MonitoringSpy()
-//        {
-//            EndpointSetup<DefaultServer>(c =>
-//            {
-//                c.UseSerialization<NewtonsoftSerializer>();
-//                c.LimitMessageProcessingConcurrencyTo(1);
-//            }).IncludeType<MetricReport>();
-//        }
+            public class MetricHandler : IHandleMessages<MetricReport>
+            {
+                public QueueLengthContext TestContext { get; set; }
 
-//        public class MetricHandler : IHandleMessages<MetricReport>
-//        {
-//            public QueueLengthContext TestContext { get; set; }
+                public void Handle(MetricReport message)
+                {
+                    if (TestContext.TrackReports())
+                    {
+                        TestContext.Data = message.Data;
+                    }
+                }
+            }
 
-//            public Task Handle(MetricReport message, IMessageHandlerContext context)
-//            {
-//                if (TestContext.TrackReports())
-//                {
-//                    TestContext.Data = message.Data.ToString();
-//                }
+            public class LimitConcurrency : IProvideConfiguration<TransportConfig>
+            {
+                public TransportConfig GetConfiguration() => new TransportConfig { MaximumConcurrencyLevel = 1 };
+            }
+        }
 
-//                return Task.FromResult(0);
-//            }
-//        }
-//    }
-//    class Receiver : EndpointConfigurationBuilder
-//    {
-//        public Receiver()
-//        {
-//            EndpointSetup<DefaultServer>((c,r) =>
-//            {
-//                c.LimitMessageProcessingConcurrencyTo(1);
-//                var address = NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
-//                var metrics = c.EnableMetrics();
-//                metrics.SendMetricDataToServiceControl(address, TimeSpan.FromSeconds(5));
+        class Receiver : EndpointConfigurationBuilder
+        {
+            public Receiver()
+            {
+                EndpointSetup<DefaultServer>(c =>
+                {
+                    var address = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
+                    c.SendMetricDataToServiceControl(address);
+                    c.Pipeline.Remove("DispatchQueueLengthBehavior");
+                });
+            }
 
-//                c.Pipeline.Remove("DispatchQueueLengthBehavior");
-//            });
-//        }
+            public class TestMessageHandler : IHandleMessages<TestMessage>
+            {
+                public void Handle(TestMessage message) { }
+            }
 
-//        public class TestMessageHandler : IHandleMessages<TestMessage>
-//        {
-//            public QueueLengthContext TestContext { get; set; }
+            public class LimitConcurrency : IProvideConfiguration<TransportConfig>
+            {
+                public TransportConfig GetConfiguration() => new TransportConfig { MaximumConcurrencyLevel = 1 };
+            }
+        }
 
-//            public Task Handle(TestMessage message, IMessageHandlerContext context)
-//            {
-//                return Task.FromResult(0);
-//            }
-//        }
-//    }
-
-//    public class TestMessage : ICommand
-//    {
-//    }
-//}
+        public class TestMessage : ICommand
+        {
+        }
+    }
+}
