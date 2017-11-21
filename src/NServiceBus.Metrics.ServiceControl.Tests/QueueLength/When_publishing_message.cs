@@ -9,6 +9,7 @@ using NUnit.Framework;
 
 namespace NServiceBus.Metrics.ServiceControl.Tests
 {
+    using AcceptanceTests.PubSub;
     using Config;
     using Config.ConfigurationSource;
     using EndpointTemplates;
@@ -85,7 +86,14 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
 
         class Context : ScenarioContext
         {
-            public volatile int SubscriptionCount;
+            volatile int subscriptionCount;
+
+            public void IncrementSubscriptionCount()
+            {
+                Interlocked.Increment(ref subscriptionCount);
+            }
+
+            public int SubscriptionCount => subscriptionCount;
 
             public ConcurrentQueue<IDictionary<string, string>> Headers1 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
             public ConcurrentQueue<IDictionary<string, string>> Headers2 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
@@ -109,9 +117,9 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
 
                     c.OnEndpointSubscribed<Context>((s, ctx) =>
                     {
-                        if (s.SubscriberReturnAddress.Contains("Subscriber"))
+                        if (s.SubscriberReturnAddress.ToString().Contains("Subscriber"))
                         {
-                            Interlocked.Increment(ref ctx.SubscriptionCount);
+                            ctx.IncrementSubscriptionCount();
                         }
                     });
 
