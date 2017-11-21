@@ -1,193 +1,206 @@
-//using System;
-//using System.Collections.Concurrent;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Threading.Tasks;
-//using Newtonsoft.Json.Linq;
-//using NServiceBus;
-//using NServiceBus.AcceptanceTesting;
-//using NServiceBus.AcceptanceTests;
-//using NServiceBus.AcceptanceTests.EndpointTemplates;
-//using NServiceBus.Metrics;
-//using NUnit.Framework;
+using System;
+using System.Linq;
+using NServiceBus.AcceptanceTesting;
+using NUnit.Framework;
 
-//public class When_sending_message : NServiceBusAcceptanceTest
-//{
-//    static string ReceiverAddress1 => NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Receiver1));
-//    static string ReceiverAddress2 => NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Receiver2));
-//    protected class QueueLengthContext : ScenarioContext
-//    {
-//        public string Data { get; set; }
+namespace NServiceBus.Metrics.ServiceControl.Tests
+{
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using Config;
+    using Config.ConfigurationSource;
+    using EndpointTemplates;
+    using Newtonsoft.Json.Linq;
 
-//        public Func<bool> TrackReports = () => true;
-//    }
-//    [Test]
-//    public async Task Should_enhance_it_with_queue_length_properties()
-//    {
-//        var context = await Scenario.Define<Context>()
-//            .WithEndpoint<Sender>(c =>
-//            {
-//                c.When(async s =>
-//                {
-//                    var to1 = new SendOptions();
-//                    to1.SetDestination(ReceiverAddress1);
-//                    await s.Send(new TestMessage(), to1);
-//                    await s.Send(new TestMessage(), to1);
+    public class When_sending_message : NServiceBusAcceptanceTest
+    {
+        static string ReceiverAddress1 => AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Receiver1));
+        static string ReceiverAddress2 => AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Receiver2));
 
-//                    var to2 = new SendOptions();
-//                    to2.SetDestination(ReceiverAddress2);
-//                    await s.Send(new TestMessage(), to2);
-//                    await s.Send(new TestMessage(), to2);
-//                });
-//            })
-//            .WithEndpoint<Receiver1>()
-//            .WithEndpoint<Receiver2>()
-//            .WithEndpoint<MonitoringSpy>()
-//            .Done(c => c.Headers1.Count == 2 && c.Headers2.Count == 2 && c.Data != null)
-//            .Run()
-//            .ConfigureAwait(false);
+        protected class QueueLengthContext : ScenarioContext
+        {
+            public MetricsContext Data { get; set; }
+            public Func<bool> TrackReports = () => true;
+        }
 
-//        AssertSequencesReported(context);
-//    }
+        [Test]
+        public void Should_enhance_it_with_queue_length_properties()
+        {
+            var context = Scenario.Define<Context>()
+                .WithEndpoint<Sender>(c =>
+                {
+                    c.When(s =>
+                    {
+                        var a1 = Address.Parse(ReceiverAddress1);
+                        s.Send(a1, new TestMessage());
+                        s.Send(a1, new TestMessage());
 
-//    static void AssertSequencesReported(Context context)
-//    {
-//        var sessionIds = new[]
-//        {
-//            AssertHeaders(context.Headers1),
-//            AssertHeaders(context.Headers2)
-//        };
+                        var a2 = Address.Parse(ReceiverAddress2);
+                        s.Send(a2,new TestMessage());
+                        s.Send(a2,new TestMessage());
+                    });
+                })
+                .WithEndpoint<Receiver1>()
+                .WithEndpoint<Receiver2>()
+                .WithEndpoint<MonitoringSpy>()
+                .Done(c => c.Headers1.Count == 2 && c.Headers2.Count == 2 && c.Data != null)
+                .Run();
 
-//        var data = JObject.Parse(context.Data);
-//        var counters = (JArray) data["Counters"];
-//        var counterTokens = counters.Where(c => c.Value<string>("Name").StartsWith("Sent sequence for"));
+            AssertSequencesReported(context);
+        }
 
-//        foreach (var counter in counterTokens)
-//        {
-//            var tags = counter["Tags"].ToObject<string[]>();
-//            var counterBasedKey = tags.GetTagValue("key");
-//            var type = tags.GetTagValue("type");
+        static void AssertSequencesReported(Context context)
+        {
+            var sessionIds = new[]
+            {
+                AssertHeaders(context.Headers1),
+                AssertHeaders(context.Headers2)
+            };
 
-//            CollectionAssert.Contains(sessionIds, counterBasedKey);
-//            Assert.AreEqual(2, counter.Value<int>("Count"));
-//            Assert.AreEqual("queue-length.sent", type);
-//        }
-//    }
+            var data = context.Data;
+            var counters = data.Counters;
+            var counterTokens = counters.Where(c => c.Name.StartsWith("Sent sequence for"));
 
-//    static string AssertHeaders(IProducerConsumerCollection<IReadOnlyDictionary<string, string>> oneReceiverHeaders)
-//    {
-//        const string keyHeader = "NServiceBus.Metrics.QueueLength.Key";
-//        const string valueHeader = "NServiceBus.Metrics.QueueLength.Value";
+            foreach (var counter in counterTokens)
+            {
+                var tags = counter.Tags;
+                var counterBasedKey = tags.GetTagValue("key");
+                var type = tags.GetTagValue("type");
 
-//        var headers = oneReceiverHeaders.ToArray();
+                CollectionAssert.Contains(sessionIds, counterBasedKey);
+                Assert.AreEqual(2, counter.Count);
+                Assert.AreEqual("queue-length.sent", type);
+            }
+        }
 
-//        var sessionKey1 = headers[0][keyHeader];
-//        var sessionKey2 = headers[1][keyHeader];
-//        Assert.AreEqual(sessionKey1, sessionKey2, "expected sessionKey1 == sessionKey2");
+        static string AssertHeaders(IProducerConsumerCollection<IDictionary<string, string>> oneReceiverHeaders)
+        {
+            const string keyHeader = "NServiceBus.Metrics.QueueLength.Key";
+            const string valueHeader = "NServiceBus.Metrics.QueueLength.Value";
 
-//        var sequence1 = long.Parse(headers[0][valueHeader]);
-//        var sequence2 = long.Parse(headers[1][valueHeader]);
-//        Assert.AreNotEqual(sequence2, sequence1, "expected sequence1 != sequence2");
-//        Assert.IsTrue(sequence1 == 1 || sequence2 == 1, "sequence1 == 1 || sequence2 == 1");
-//        Assert.IsTrue(sequence1 == 2 || sequence2 == 2, "sequence1 == 2 || sequence2 == 2");
-//        return sessionKey1;
-//    }
+            var headers = oneReceiverHeaders.ToArray();
 
-//    static readonly Guid HostId = Guid.NewGuid();
+            var sessionKey1 = headers[0][keyHeader];
+            var sessionKey2 = headers[1][keyHeader];
+            Assert.AreEqual(sessionKey1, sessionKey2, "expected sessionKey1 == sessionKey2");
 
-//    class Context : QueueLengthContext
-//    {
-//        public Context()
-//        {
-//            TrackReports = () => Headers1.Count == 2 && Headers2.Count == 2;
-//        }
+            var sequence1 = long.Parse(headers[0][valueHeader]);
+            var sequence2 = long.Parse(headers[1][valueHeader]);
+            Assert.AreNotEqual(sequence2, sequence1, "expected sequence1 != sequence2");
+            Assert.IsTrue(sequence1 == 1 || sequence2 == 1, "sequence1 == 1 || sequence2 == 1");
+            Assert.IsTrue(sequence1 == 2 || sequence2 == 2, "sequence1 == 2 || sequence2 == 2");
+            return sessionKey1;
+        }
 
-//        public ConcurrentQueue<IReadOnlyDictionary<string, string>> Headers1 { get; } = new ConcurrentQueue<IReadOnlyDictionary<string, string>>();
-//        public ConcurrentQueue<IReadOnlyDictionary<string, string>> Headers2 { get; } = new ConcurrentQueue<IReadOnlyDictionary<string, string>>();
-//    }
+        static readonly Guid HostId = Guid.NewGuid();
 
-//    class Sender : EndpointConfigurationBuilder
-//    {
-//        public Sender()
-//        {
-//            EndpointSetup<DefaultServer>((c, r) =>
-//            {
-//                var runningInstance = c.UniquelyIdentifyRunningInstance();
-//                runningInstance.UsingCustomIdentifier(HostId);
-//                var address = NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
-//                var metrics = c.EnableMetrics();
-//                metrics.SendMetricDataToServiceControl(address, TimeSpan.FromSeconds(5));
-//            });
-//        }
-//    }
+        class Context : QueueLengthContext
+        {
+            public Context()
+            {
+                TrackReports = () => Headers1.Count == 2 && Headers2.Count == 2;
+            }
 
-//    class Receiver1 : EndpointConfigurationBuilder
-//    {
-//        public Receiver1()
-//        {
-//            EndpointSetup<DefaultServer>(c => c.LimitMessageProcessingConcurrencyTo(1));
-//        }
+            public ConcurrentQueue<IDictionary<string, string>> Headers1 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
+            public ConcurrentQueue<IDictionary<string, string>> Headers2 { get; } = new ConcurrentQueue<IDictionary<string, string>>();
+        }
 
-//        public class TestMessageHandler : IHandleMessages<TestMessage>
-//        {
-//            public Context TestContext { get; set; }
+        class Sender : EndpointConfigurationBuilder
+        {
+            public Sender()
+            {
+                EndpointSetup<DefaultServer>(c =>
+                {
+                    var runningInstance = c.UniquelyIdentifyRunningInstance();
+                    runningInstance.UsingCustomIdentifier(HostId);
+                    
+                    var address = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
+                    c.SendMetricDataToServiceControl(address);
+                });
+            }
+        }
 
-//            public Task Handle(TestMessage message, IMessageHandlerContext context)
-//            {
-//                TestContext.Headers1.Enqueue(context.MessageHeaders);
+        class Receiver1 : EndpointConfigurationBuilder
+        {
+            public Receiver1()
+            {
+                EndpointSetup<DefaultServer>();
+            }
 
-//                return Task.FromResult(0);
-//            }
-//        }
-//    }
+            public class TestMessageHandler : IHandleMessages<TestMessage>
+            {
+                public Context TestContext { get; set; }
 
-//    protected class MonitoringSpy : EndpointConfigurationBuilder
-//    {
-//        public MonitoringSpy()
-//        {
-//            EndpointSetup<DefaultServer>(c =>
-//            {
-//                c.UseSerialization<NewtonsoftSerializer>();
-//                c.LimitMessageProcessingConcurrencyTo(1);
-//            }).IncludeType<MetricReport>();
-//        }
+                public IBus Bus { get; set; }
 
-//        public class MetricHandler : IHandleMessages<MetricReport>
-//        {
-//            public QueueLengthContext TestContext { get; set; }
+                public void Handle(TestMessage message)
+                {
+                    TestContext.Headers1.Enqueue(Bus.CurrentMessageContext.Headers);
+                }
+            }
 
-//            public Task Handle(MetricReport message, IMessageHandlerContext context)
-//            {
-//                if (TestContext.TrackReports())
-//                {
-//                    TestContext.Data = message.Data.ToString();
-//                }
+            public class LimitConcurrency : IProvideConfiguration<TransportConfig>
+            {
+                public TransportConfig GetConfiguration() => new TransportConfig { MaximumConcurrencyLevel = 1 };
+            }
+        }
 
-//                return Task.FromResult(0);
-//            }
-//        }
-//    }
-//    class Receiver2 : EndpointConfigurationBuilder
-//    {
-//        public Receiver2()
-//        {
-//            EndpointSetup<DefaultServer>(c => c.LimitMessageProcessingConcurrencyTo(1));
-//        }
+        protected class MonitoringSpy : EndpointConfigurationBuilder
+        {
+            public MonitoringSpy()
+            {
+                EndpointSetup<DefaultServer>(c =>
+                {
+                    c.UseSerialization<JsonSerializer>();
+                }).IncludeType<MetricReport>();
+            }
 
-//        public class TestMessageHandler : IHandleMessages<TestMessage>
-//        {
-//            public Context TestContext { get; set; }
+            public class MetricHandler : IHandleMessages<MetricReport>
+            {
+                public QueueLengthContext TestContext { get; set; }
 
-//            public Task Handle(TestMessage message, IMessageHandlerContext context)
-//            {
-//                TestContext.Headers2.Enqueue(context.MessageHeaders);
+                public void Handle(MetricReport message)
+                {
+                    if (TestContext.TrackReports())
+                    {
+                        TestContext.Data = message.Data;
+                    }
+                }
+            }
 
-//                return Task.FromResult(0);
-//            }
-//        }
-//    }
+            public class LimitConcurrency : IProvideConfiguration<TransportConfig>
+            {
+                public TransportConfig GetConfiguration() => new TransportConfig { MaximumConcurrencyLevel = 1 };
+            }
+        }
 
-//    public class TestMessage : ICommand
-//    {
-//    }
-//}
+        class Receiver2 : EndpointConfigurationBuilder
+        {
+            public Receiver2()
+            {
+                EndpointSetup<DefaultServer>();
+            }
+
+            public class TestMessageHandler : IHandleMessages<TestMessage>
+            {
+                public Context TestContext { get; set; }
+
+                public IBus Bus { get; set; }
+
+                public void Handle(TestMessage message)
+                {
+                    TestContext.Headers2.Enqueue(Bus.CurrentMessageContext.Headers);
+                }
+            }
+
+            public class LimitConcurrency : IProvideConfiguration<TransportConfig>
+            {
+                public TransportConfig GetConfiguration() => new TransportConfig { MaximumConcurrencyLevel = 1 };
+            }
+        }
+
+        public class TestMessage : ICommand
+        {
+        }
+    }
+}
