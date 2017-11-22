@@ -101,9 +101,9 @@
                 next();
             }
 
-            string BuildKey(string destination)
+            string BuildKey(string keyBase)
             {
-                return $"{destination}-{SessionId}".ToLowerInvariant();
+                return $"{keyBase}-{SessionId}".ToLowerInvariant();
             }
 
             public class Registration : RegisterStep
