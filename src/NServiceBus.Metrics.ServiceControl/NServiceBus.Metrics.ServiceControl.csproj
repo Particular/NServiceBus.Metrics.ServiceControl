@@ -20,7 +20,7 @@
     <PackageReference Include="NuGetPackager" Version="0.6.5" />
     <PackageReference Include="ServiceControl.Monitoring.Data" Version="1.0.2" />
   </ItemGroup>
-  <Target Name="MergeDependencies" AfterTargets="CopyFilesToOutputDirectory">
+  <Target Name="MergeDependencies" AfterTargets="CopyFilesToOutputDirectory" Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <PropertyGroup>
       <TempFolder>$(TargetDir)temp</TempFolder>
     </PropertyGroup>

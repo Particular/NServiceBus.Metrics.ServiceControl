@@ -3,13 +3,16 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using Faults;
     using Features;
     using global::ServiceControl.Monitoring.Data;
+    using Hosting;
     using Logging;
     using Pipeline;
     using Pipeline.Contexts;
+    using ServiceControlReporting;
     using Support;
     using Transports;
     using Unicast;
@@ -27,7 +30,9 @@
         protected override void Setup(FeatureConfigurationContext context)
         {
             var buffers = new Buffers();
-            var options = context.Settings.Get<ReportingOptions>();
+            var settings = context.Settings;
+
+            var options = settings.Get<ReportingOptions>();
             var container = context.Container;
 
             container.ConfigureComponent(() => options, DependencyLifecycle.SingleInstance);
@@ -47,8 +52,38 @@
                 return buffers;
 
             }, DependencyLifecycle.SingleInstance);
+
+            var endpointName = settings.EndpointName();
+            var metricsContext = new MetricsContext(endpointName);
+            container.ConfigureComponent(() => metricsContext, DependencyLifecycle.SingleInstance);
+            QueueLengthTracker.SetUp(metricsContext, context);
+
             context.Pipeline.Register<ServiceControlMonitoringRegistration>();
+
+            var hostInformation = new HostInformation(
+                settings.Get<Guid>("NServiceBus.HostInformation.HostId"),
+                settings.Get<string>("NServiceBus.HostInformation.DisplayName"),
+                settings.Get<Dictionary<string, string>>("NServiceBus.HostInformation.Properties"));
+
+
+            var headers = new Dictionary<string, string>
+            {
+                {Headers.OriginatingEndpoint, endpointName},
+                {Headers.OriginatingMachine, RuntimeEnvironment.MachineName},
+                {Headers.OriginatingHostId, hostInformation.HostId.ToString("N")},
+                {Headers.HostDisplayName, hostInformation.DisplayName},
+            };
+
+            if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
+            {
+                headers.Add(MetricHeaders.MetricInstanceId, instanceId);
+            }
+
+            container.ConfigureComponent<ServiceControlReporting>(DependencyLifecycle.SingleInstance)
+                .ConfigureProperty(task => task.HeaderValues, headers);
+
             RegisterStartupTask<ReportingStartupTask>();
+            RegisterStartupTask<ServiceControlReporting>();
         }
 
         class ServiceControlMonitoringRegistrationBehavior : IBehavior<IncomingContext>
@@ -113,6 +148,46 @@
             {
                 InsertBefore(WellKnownStep.ProcessingStatistics);
             }
+        }
+
+        class ServiceControlReporting : FeatureStartupTask
+        {
+            public ServiceControlReporting(MetricsContext metricsContext, ISendMessages dispatcher, ReportingOptions options)
+            {
+                this.metricsContext = metricsContext;
+                this.dispatcher = dispatcher;
+                this.options = options;
+            }
+
+            protected override void OnStart()
+            {
+                HeaderValues.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.MetricReport");
+                HeaderValues.Add(Headers.ContentType, ContentTypes.Json);
+
+                var serviceControlReport = new NServiceBusMetricReport(dispatcher, options, HeaderValues, metricsContext);
+
+                task = Task.Run(async () =>
+                {
+                    while (cancellationTokenSource.IsCancellationRequested == false)
+                    {
+                        serviceControlReport.RunReport();
+                        await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
+                    }
+                });
+            }
+
+            protected override void OnStop()
+            {
+                cancellationTokenSource.Cancel();
+                task.GetAwaiter().GetResult();
+            }
+
+            readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+            readonly MetricsContext metricsContext;
+            readonly ISendMessages dispatcher;
+            readonly ReportingOptions options;
+            public Dictionary<string, string> HeaderValues { get; set; }
+            Task task;
         }
 
         class ReportingStartupTask : FeatureStartupTask
