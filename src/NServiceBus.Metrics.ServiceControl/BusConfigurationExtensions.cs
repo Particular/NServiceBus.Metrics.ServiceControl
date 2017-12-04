@@ -21,6 +21,17 @@
             options.EndpointInstanceIdOverride = instanceId;
         }
 
+        /// <summary>
+        /// Configures messages send to Service Control to be expired after <paramref name="timeToBeReceived"/>.
+        /// </summary>
+        /// <param name="busConfiguration">Bus configuration.</param>
+        /// <param name="timeToBeReceived">Time to be received.</param>
+        public static void SetServiceControlTTBR(this BusConfiguration busConfiguration, TimeSpan timeToBeReceived)
+        {
+            var options = GetReportingOptions(busConfiguration);
+            options.TimeToBeReceived = timeToBeReceived;
+        }
+
         static ReportingOptions GetReportingOptions(BusConfiguration busConfiguration)
         {
             var settings = busConfiguration.GetSettings();
