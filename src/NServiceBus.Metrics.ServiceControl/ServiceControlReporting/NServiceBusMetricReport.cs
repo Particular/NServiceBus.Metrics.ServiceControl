@@ -15,6 +15,7 @@
             this.headers = headers;
             this.metricsContext = metricsContext;
             destination = options.ServiceControlMetricsAddress;
+            ttbr = options.TimeToBeReceived;
         }
 
         public void RunReport()
@@ -28,7 +29,10 @@
                 {
                     Body = body,
                     MessageIntent = MessageIntentEnum.Send
-                }, new SendOptions(destination));
+                }, new SendOptions(destination)
+                {
+                    TimeToBeReceived = ttbr
+                });
             }
             catch (Exception exception)
             {
@@ -40,6 +44,7 @@
         readonly string destination;
         readonly ISendMessages dispatcher;
         readonly Dictionary<string, string> headers;
+        readonly TimeSpan ttbr;
         static ILog log = LogManager.GetLogger<NServiceBusMetricReport>();
     }
 }

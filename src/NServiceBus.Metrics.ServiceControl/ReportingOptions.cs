@@ -6,7 +6,7 @@
     {
         internal string ServiceControlMetricsAddress;
         internal string EndpointInstanceIdOverride;
-        public TimeSpan TimeToBeReceived => TimeSpan.FromDays(7);
+        public TimeSpan TimeToBeReceived { get; set; } = TimeSpan.FromDays(7);
         
         internal bool TryGetValidEndpointInstanceIdOverride(out string instanceId)
         {
