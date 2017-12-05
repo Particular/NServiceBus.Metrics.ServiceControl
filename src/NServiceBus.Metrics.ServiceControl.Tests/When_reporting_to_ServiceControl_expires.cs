@@ -12,10 +12,10 @@
 
     public class When_reporting_to_ServiceControl_expires : NServiceBusAcceptanceTest
     {
-        static readonly TimeSpan TTBR = TimeSpan.FromSeconds(1);
+        static readonly TimeSpan TTBR = TimeSpan.FromSeconds(10);
 
         [Test]
-        public void Should_report_nothing()
+        public void Should_report_nothing_when_ttbr_breached()
         {
             var context = new Context();
 
@@ -26,7 +26,7 @@
                   }))
                 .Done(ctx => ctx.MessageProcessedBySender);
 
-            Thread.Sleep(TTBR + TimeSpan.FromSeconds(2));
+            Thread.Sleep(TTBR + TTBR);
 
             Scenario.Define(context)
                 .WithEndpoint<MonitoringMock>()
@@ -34,6 +34,23 @@
                 .Run(TimeSpan.FromSeconds(10));
 
             Assert.IsFalse(context.WasCalled);
+        }
+
+        [Test]
+        public void Should_report_when_ttbr_not_breached()
+        {
+            var context = new Context();
+
+            Scenario.Define(context)
+                .WithEndpoint<Sender>(b => b.Given((bus, c) =>
+                {
+                    bus.SendLocal(new MyMessage());
+                }))
+                .WithEndpoint<MonitoringMock>()
+                .Done(ctx => ctx.WasCalled)
+                .Run();
+
+            Assert.True(context.WasCalled);
         }
 
         public class Context : ScenarioContext
