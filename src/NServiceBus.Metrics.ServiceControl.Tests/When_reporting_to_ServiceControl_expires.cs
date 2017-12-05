@@ -3,6 +3,8 @@
     using System;
     using System.Threading;
     using AcceptanceTesting;
+    using Config;
+    using Config.ConfigurationSource;
     using EndpointTemplates;
     using NUnit.Framework;
     using Pipeline;
@@ -10,18 +12,25 @@
 
     public class When_reporting_to_ServiceControl_expires : NServiceBusAcceptanceTest
     {
+        static readonly TimeSpan TTBR = TimeSpan.FromSeconds(1);
+
         [Test]
-        public void Should_report_properly()
+        public void Should_report_nothing()
         {
             var context = new Context();
 
             Scenario.Define(context)
                 .WithEndpoint<Sender>(b => b.Given((bus, c) =>
-                {
-                    bus.SendLocal(new MyMessage());
-                }))
-                .Done(ctx => ctx.WasCalled)
+                  {
+                      bus.SendLocal(new MyMessage());
+                  }))
+                .Done(ctx => ctx.MessageProcessedBySender);
+
+            Thread.Sleep(TTBR + TimeSpan.FromSeconds(2));
+
+            Scenario.Define(context)
                 .WithEndpoint<MonitoringMock>()
+                .Done(ctx => ctx.WasCalled)
                 .Run(TimeSpan.FromSeconds(10));
 
             Assert.IsFalse(context.WasCalled);
@@ -29,6 +38,7 @@
 
         public class Context : ScenarioContext
         {
+            public bool MessageProcessedBySender { get; set; }
             public bool WasCalled { get; set; }
         }
 
@@ -38,18 +48,23 @@
             {
                 EndpointSetup<DefaultServer>(cfg =>
                 {
-                    var queue = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringMock));
-                    cfg.SendMetricDataToServiceControl(queue, "my-custom-instance");
-                    cfg.SetServiceControlTTBR(TimeSpan.Zero);
+                    var monitoringQueue = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringMock));
+
+                    cfg.SendMetricDataToServiceControl(monitoringQueue, "my-custom-instance");
+                    cfg.SetServiceControlTTBR(TTBR);
                     cfg.Transactions().Disable(); //transactional msmq with ttbr not supported
                 });
             }
 
             public class MyMessageHandler : IHandleMessages<MyMessage>
             {
+                public Context Context { get; set; }
+
                 public void Handle(MyMessage message)
                 {
                     Thread.Sleep(100);
+
+                    Context.MessageProcessedBySender = true;
                 }
             }
         }
@@ -69,6 +84,11 @@
                 }
             }
 
+            public class LimitConcurrency : IProvideConfiguration<TransportConfig>
+            {
+                public TransportConfig GetConfiguration() => new TransportConfig { MaximumConcurrencyLevel = 1 };
+            }
+
             class MyRawMessageHandler : IBehavior<IncomingContext>
             {
                 public Context Context { get; set; }
@@ -81,6 +101,9 @@
         }
 
         public class MyMessage : IMessage
+        { }
+
+        public class SlowMessage : IMessage
         { }
     }
 }
