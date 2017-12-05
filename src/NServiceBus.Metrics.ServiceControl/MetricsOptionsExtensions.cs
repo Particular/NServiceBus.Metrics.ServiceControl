@@ -24,5 +24,17 @@
             reporting.ServiceControlReportingInterval = interval;
             reporting.EndpointInstanceIdOverride = instanceId;
         }
-    }
+
+        /// <summary>
+        /// Configures messages send to Service Control to be expired after <paramref name="timeToBeReceived"/>.
+        /// </summary>
+        /// <param name="options">The metrics options configuration object.</param>
+        /// <param name="timeToBeReceived">Time to be received.</param>
+        public static void SetServiceControlTTBR(this MetricsOptions options, TimeSpan timeToBeReceived)
+        {
+            var reporting = ReportingOptions.Get(options);
+
+            reporting.TimeToBeReceived = timeToBeReceived;
+        }
+}
 }
