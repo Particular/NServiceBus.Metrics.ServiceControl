@@ -21,10 +21,11 @@
 
             Scenario.Define(context)
                 .WithEndpoint<Sender>(b => b.Given((bus, c) =>
-                  {
-                      bus.SendLocal(new MyMessage());
-                  }))
-                .Done(ctx => ctx.MessageProcessedBySender);
+                {
+                    bus.SendLocal(new MyMessage());
+                }))
+                .Done(ctx => ctx.MessageProcessedBySender)
+                .Run();
 
             Thread.Sleep(TTBR + TTBR);
 
