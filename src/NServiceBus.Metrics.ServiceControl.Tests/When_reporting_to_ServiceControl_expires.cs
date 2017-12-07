@@ -69,7 +69,7 @@
                     var monitoringQueue = AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(MonitoringMock));
 
                     cfg.SendMetricDataToServiceControl(monitoringQueue, "my-custom-instance");
-                    cfg.SetServiceControlTTBR(TTBR);
+                    cfg.SetServiceControlMetricsMessageTTBR(TTBR);
                     cfg.Transactions().Disable(); //transactional msmq with ttbr not supported
                 });
             }

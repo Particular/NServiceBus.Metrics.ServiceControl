@@ -26,7 +26,7 @@
         /// </summary>
         /// <param name="busConfiguration">Bus configuration.</param>
         /// <param name="timeToBeReceived">Time to be received.</param>
-        public static void SetServiceControlTTBR(this BusConfiguration busConfiguration, TimeSpan timeToBeReceived)
+        public static void SetServiceControlMetricsMessageTTBR(this BusConfiguration busConfiguration, TimeSpan timeToBeReceived)
         {
             var options = GetReportingOptions(busConfiguration);
             options.TimeToBeReceived = timeToBeReceived;
