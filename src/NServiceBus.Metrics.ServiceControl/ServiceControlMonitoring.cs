@@ -255,13 +255,14 @@
                     {
                         Body = body,
                         MessageIntent = MessageIntentEnum.Send,
+                        
+                        // TTBR is copied to the TransportMessage by the infrastructure before it hits. If ISendMessages is called manually, it needs to be passed in here
                         TimeToBeReceived = timeToBeReceived,
                     };
                     try
                     {
                         dispatcher.Send(operation, new SendOptions(options.ServiceControlMetricsAddress)
                         {
-                            TimeToBeReceived = timeToBeReceived,
                             EnlistInReceiveTransaction = false,
                         });
                     }

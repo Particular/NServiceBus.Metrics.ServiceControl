@@ -29,11 +29,12 @@
                 {
                     Body = body,
                     MessageIntent = MessageIntentEnum.Send,
+
+                    // TTBR is copied to the TransportMessage by the infrastructure before it hits. If ISendMessages is called manually, it needs to be passed in here
                     TimeToBeReceived = ttbr,
                 }, new SendOptions(destination)
                 {
                     EnlistInReceiveTransaction = false,
-                    TimeToBeReceived = ttbr
                 });
             }
             catch (Exception exception)
