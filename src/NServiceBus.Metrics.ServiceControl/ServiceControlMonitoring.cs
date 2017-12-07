@@ -255,13 +255,14 @@
                     {
                         Body = body,
                         MessageIntent = MessageIntentEnum.Send,
+                        TimeToBeReceived = timeToBeReceived,
                     };
                     try
                     {
                         dispatcher.Send(operation, new SendOptions(options.ServiceControlMetricsAddress)
                         {
                             TimeToBeReceived = timeToBeReceived,
-                            EnlistInReceiveTransaction = false
+                            EnlistInReceiveTransaction = false,
                         });
                     }
                     catch (Exception ex)

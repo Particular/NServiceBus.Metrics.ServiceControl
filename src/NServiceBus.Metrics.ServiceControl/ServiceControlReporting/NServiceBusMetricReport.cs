@@ -28,11 +28,12 @@
                 dispatcher.Send(new TransportMessage(Guid.NewGuid().ToString(), headers)
                 {
                     Body = body,
-                    MessageIntent = MessageIntentEnum.Send
+                    MessageIntent = MessageIntentEnum.Send,
+                    TimeToBeReceived = ttbr,
                 }, new SendOptions(destination)
                 {
-                    TimeToBeReceived = ttbr,
                     EnlistInReceiveTransaction = false,
+                    TimeToBeReceived = ttbr
                 });
             }
             catch (Exception exception)
