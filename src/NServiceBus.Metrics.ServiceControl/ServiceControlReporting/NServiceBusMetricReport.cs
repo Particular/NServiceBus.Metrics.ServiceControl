@@ -31,7 +31,8 @@
                     MessageIntent = MessageIntentEnum.Send
                 }, new SendOptions(destination)
                 {
-                    TimeToBeReceived = ttbr
+                    TimeToBeReceived = ttbr,
+                    EnlistInReceiveTransaction = false,
                 });
             }
             catch (Exception exception)

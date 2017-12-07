@@ -260,7 +260,8 @@
                     {
                         dispatcher.Send(operation, new SendOptions(options.ServiceControlMetricsAddress)
                         {
-                            TimeToBeReceived = timeToBeReceived
+                            TimeToBeReceived = timeToBeReceived,
+                            EnlistInReceiveTransaction = false
                         });
                     }
                     catch (Exception ex)
