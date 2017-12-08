@@ -236,7 +236,7 @@
 
             RawDataReporter BuildReporter(string metricType, Buffer buffer)
             {
-                var reporter = new RawDataReporter(BuildSend(CreateHeaders(metricType)), buffer.Ring, (entries, binaryWriter) => buffer.Writer.Write(binaryWriter, entries));
+                var reporter = new RawDataReporter(BuildSend(CreateHeaders(metricType), options.TimeToBeReceived), buffer.Ring, (entries, binaryWriter) => buffer.Writer.Write(binaryWriter, entries));
                 reporter.Start();
                 return reporter;
             }
@@ -246,7 +246,7 @@
                 Task.WhenAll(reporters.Select(r => r.Stop())).GetAwaiter().GetResult();
             }
 
-            Func<byte[], Task> BuildSend(Dictionary<string, string> headers)
+            Func<byte[], Task> BuildSend(Dictionary<string, string> headers, TimeSpan timeToBeReceived)
             {
                 var completed = Task.FromResult(0);
                 return body =>
@@ -255,10 +255,16 @@
                     {
                         Body = body,
                         MessageIntent = MessageIntentEnum.Send,
+                        
+                        // TTBR is copied to the TransportMessage by the infrastructure before it hits. If ISendMessages is called manually, it needs to be passed in here
+                        TimeToBeReceived = timeToBeReceived,
                     };
                     try
                     {
-                        dispatcher.Send(operation, new SendOptions(options.ServiceControlMetricsAddress));
+                        dispatcher.Send(operation, new SendOptions(options.ServiceControlMetricsAddress)
+                        {
+                            EnlistInReceiveTransaction = false,
+                        });
                     }
                     catch (Exception ex)
                     {

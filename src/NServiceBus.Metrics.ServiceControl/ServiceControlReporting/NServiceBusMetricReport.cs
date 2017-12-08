@@ -15,6 +15,7 @@
             this.headers = headers;
             this.metricsContext = metricsContext;
             destination = options.ServiceControlMetricsAddress;
+            ttbr = options.TimeToBeReceived;
         }
 
         public void RunReport()
@@ -27,8 +28,14 @@
                 dispatcher.Send(new TransportMessage(Guid.NewGuid().ToString(), headers)
                 {
                     Body = body,
-                    MessageIntent = MessageIntentEnum.Send
-                }, new SendOptions(destination));
+                    MessageIntent = MessageIntentEnum.Send,
+
+                    // TTBR is copied to the TransportMessage by the infrastructure before it hits. If ISendMessages is called manually, it needs to be passed in here
+                    TimeToBeReceived = ttbr,
+                }, new SendOptions(destination)
+                {
+                    EnlistInReceiveTransaction = false,
+                });
             }
             catch (Exception exception)
             {
@@ -40,6 +47,7 @@
         readonly string destination;
         readonly ISendMessages dispatcher;
         readonly Dictionary<string, string> headers;
+        readonly TimeSpan ttbr;
         static ILog log = LogManager.GetLogger<NServiceBusMetricReport>();
     }
 }
