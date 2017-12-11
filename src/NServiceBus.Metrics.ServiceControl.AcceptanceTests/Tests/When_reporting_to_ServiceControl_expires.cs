@@ -7,7 +7,6 @@
     using NServiceBus.AcceptanceTests;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NUnit.Framework;
-    using Pipeline;
 
     public class When_reporting_to_ServiceControl_expires : NServiceBusAcceptanceTest
     {
