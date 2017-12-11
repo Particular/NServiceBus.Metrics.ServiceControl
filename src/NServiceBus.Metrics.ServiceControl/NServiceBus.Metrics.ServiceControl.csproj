@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net452</TargetFramework>
+    <TargetFramework>net45</TargetFramework>
     <OutputPath>..\..\binaries\</OutputPath>
     <DocumentationFile>..\..\binaries\net452\NServiceBus.Metrics.ServiceControl.xml</DocumentationFile>
     <LangVersion>7</LangVersion>
