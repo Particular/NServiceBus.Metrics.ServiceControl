@@ -27,7 +27,6 @@
 
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<MonitoringMock>()
-                .Done(ctx => ctx.WasCalled)
                 .Run(TimeSpan.FromSeconds(10));
 
             Assert.IsFalse(context.WasCalled);
@@ -60,7 +59,7 @@
                     c.UniquelyIdentifyRunningInstance().UsingCustomIdentifier(HostId);
                     var metrics = c.EnableMetrics();
                     metrics.SendMetricDataToServiceControl(MonitoringSpyAddress, TimeSpan.FromSeconds(1));
-                    metrics.SetServiceControlTTBR(TTBR);
+                    metrics.SetServiceControlMetricsMessageTTBR(TTBR);
                 });
             }
 
@@ -87,13 +86,14 @@
                 }).IncludeType<MetricReport>();
             }
 
-            class MyRawMessageHandler : Behavior<IIncomingContext>
+            public class MetricHandler : IHandleMessages<MetricReport>
             {
                 public Context Context { get; set; }
 
-                public override Task Invoke(IIncomingContext context, Func<Task> next)
+                public Task Handle(MetricReport message, IMessageHandlerContext context)
                 {
                     Context.WasCalled = true;
+                    
                     return Task.FromResult(0);
                 }
             }

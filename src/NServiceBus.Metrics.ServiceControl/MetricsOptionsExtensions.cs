@@ -30,11 +30,11 @@
         /// </summary>
         /// <param name="options">The metrics options configuration object.</param>
         /// <param name="timeToBeReceived">Time to be received.</param>
-        public static void SetServiceControlTTBR(this MetricsOptions options, TimeSpan timeToBeReceived)
+        public static void SetServiceControlMetricsMessageTTBR(this MetricsOptions options, TimeSpan timeToBeReceived)
         {
             var reporting = ReportingOptions.Get(options);
 
             reporting.TimeToBeReceived = timeToBeReceived;
         }
-}
+    }
 }
