@@ -1,43 +1,54 @@
-﻿namespace NServiceBus.Metrics.ServiceControl.Tests
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using ApprovalTests;
+using ApprovalTests.Core;
+using NUnit.Framework;
+using PublicApiGenerator;
+
+[TestFixture]
+public class APIApprovals
 {
-    using System.IO;
-    using System.Reflection;
-    using System.Runtime.CompilerServices;
-    using ApprovalTests;
-    using ApprovalTests.Core;
-    using ApprovalTests.Writers;
-    using NUnit.Framework;
-    using PublicApiGenerator;
-
-    [TestFixture]
-    public class APIApprovals
+    [Test]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void Approve()
     {
-        static readonly Assembly Assembly = typeof(BusConfigurationExtensions).Assembly;
+        var combine = Path.Combine(TestContext.CurrentContext.TestDirectory, "NServiceBus.Metrics.ServiceControl.dll");
+        var assembly = Assembly.LoadFile(combine);
+        var publicApi = Filter(ApiGenerator.GeneratePublicApi(assembly));
+        Approvals.Verify(BuildWriter(publicApi));
+    }
 
-        [Test]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public void Approve()
-        {
-            var publicApi = ApiGenerator.GeneratePublicApi(Assembly);
-            Approvals.Verify(WriterFactory.CreateTextWriter(publicApi, "cs"), GetNamer(), Approvals.GetReporter());
-        }
+    static IApprovalWriter BuildWriter(string api,[CallerFilePath] string path = null)
+    {
+        var directory = Path.GetDirectoryName(path);
+        return new LocalApprovalTextWriter(api, "cs", directory);
+    }
 
-        static IApprovalNamer GetNamer([CallerFilePath] string path = "")
-        {
-            var dir = Path.GetDirectoryName(path);
-            var name = Assembly.GetName().Name;
-
-            return new Namer
+    string Filter(string text)
+    {
+        return string.Join(Environment.NewLine, text.Split(new[]
             {
-                Name = name,
-                SourcePath = dir,
-            };
+                Environment.NewLine
+            }, StringSplitOptions.RemoveEmptyEntries)
+            .Where(l => !l.StartsWith("[assembly: System.Runtime.Versioning"))
+            .Where(l => !string.IsNullOrWhiteSpace(l))
+        );
+    }
+
+    class LocalApprovalTextWriter : ApprovalTextWriter
+    {
+        readonly string directory;
+
+        public LocalApprovalTextWriter(string data, string extensionWithoutDot, string directory) 
+            : base(data, extensionWithoutDot)
+        {
+            this.directory = directory;
         }
 
-        class Namer : IApprovalNamer
-        {
-            public string SourcePath { get; set; }
-            public string Name { get; set; }
-        }
+        public override string GetApprovalFilename(string basename) => Path.Combine(directory, base.GetApprovalFilename(basename));
+        public override string GetReceivedFilename(string basename) => Path.Combine(directory, base.GetReceivedFilename(basename));
     }
 }
