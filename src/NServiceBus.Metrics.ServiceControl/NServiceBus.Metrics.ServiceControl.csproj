@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net452</TargetFramework>
+    <TargetFramework>net45</TargetFramework>
     <OutputPath>..\..\binaries\</OutputPath>
-    <DocumentationFile>..\..\binaries\net452\NServiceBus.Metrics.ServiceControl.xml</DocumentationFile>
+    <DocumentationFile>..\..\binaries\net45\NServiceBus.Metrics.ServiceControl.xml</DocumentationFile>
     <LangVersion>7</LangVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
@@ -18,19 +18,6 @@
     <PackageReference Include="ILRepack" Version="2.0.13" />
     <PackageReference Include="NServiceBus" Version="5.2.23" />
     <PackageReference Include="NuGetPackager" Version="0.6.5" />
-    <PackageReference Include="ServiceControl.Monitoring.Data" Version="1.0.2" />
+    <PackageReference Include="ServiceControl.Monitoring.Data" Version="2.0.0" />
   </ItemGroup>
-  <Target Name="MergeDependencies" AfterTargets="CopyFilesToOutputDirectory" Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <PropertyGroup>
-      <TempFolder>$(TargetDir)temp</TempFolder>
-    </PropertyGroup>
-    <MakeDir Directories="$(TempFolder)" />
-    <Exec Command="&quot;$(ILRepack)&quot; /out:&quot;$(TempFolder)\$(AssemblyName).dll&quot; &quot;$(TargetDir)$(AssemblyName).dll&quot; &quot;$(TargetDir)ServiceControl.Monitoring.Data.dll&quot; /targetplatform:v4 /internalize /lib:&quot;$(TargetDir).&quot;" />
-    <ItemGroup>
-      <TempFiles Include="$(TempFolder)\*.*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(TempFiles)" DestinationFolder="$(OutputPath)" OverwriteReadOnlyFiles="true" />
-    <Delete Files="@(TempFiles)" />
-    <RemoveDir Directories="$(TempFolder)" />
-  </Target>
 </Project>
