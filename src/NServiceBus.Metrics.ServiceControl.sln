@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27004.2002
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NServiceBus.Metrics.ServiceControl", "NServiceBus.Metrics.ServiceControl\NServiceBus.Metrics.ServiceControl.csproj", "{17FAA608-F5E1-4A48-BFEE-C2071BDB0238}"
 EndProject
