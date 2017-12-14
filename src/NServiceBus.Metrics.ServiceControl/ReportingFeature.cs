@@ -16,7 +16,9 @@ using ServiceControl.Monitoring.Data;
 
 namespace NServiceBus.Metrics.ServiceControl
 {
+    using DeliveryConstraints;
     using MessageMutator;
+    using Performance.TimeToBeReceived;
 
     class ReportingFeature : Feature
     {
@@ -238,8 +240,11 @@ namespace NServiceBus.Metrics.ServiceControl
                 async Task Sender(byte[] body)
                 {
                     var message = new OutgoingMessage(Guid.NewGuid().ToString(), reporterHeaders, body);
-
-                    var operation = new TransportOperation(message, address);
+                    var constraints = new List<DeliveryConstraint>
+                    {
+                        new DiscardIfNotReceivedBefore(options.TimeToBeReceived)
+                    };
+                    var operation = new TransportOperation(message, address, DispatchConsistency.Default, constraints);
                     try
                     {
                         await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), new ContextBag())

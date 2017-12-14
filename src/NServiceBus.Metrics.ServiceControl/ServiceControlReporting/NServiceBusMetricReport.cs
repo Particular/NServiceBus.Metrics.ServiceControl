@@ -9,6 +9,9 @@ using NServiceBus.Transport;
 
 namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
 {
+    using DeliveryConstraints;
+    using Performance.TimeToBeReceived;
+
     class NServiceBusMetricReport
     {
         public NServiceBusMetricReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, MetricsContext metricsContext)
@@ -18,6 +21,7 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
             this.metricsContext = metricsContext;
 
             destination = new UnicastAddressTag(options.ServiceControlMetricsAddress);
+            timeToBeReceived = options.TimeToBeReceived;
         }
 
         public async Task RunReportAsync()
@@ -26,11 +30,16 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
             var body = Encoding.UTF8.GetBytes(stringBody);
 
             var message = new OutgoingMessage(Guid.NewGuid().ToString(), headers, body);
-            var operation = new TransportOperation(message, destination);
+            var constraints = new List<DeliveryConstraint>
+            {
+                new DiscardIfNotReceivedBefore(timeToBeReceived)
+            };
+
+            var operation = new TransportOperation(message, destination, DispatchConsistency.Default, constraints);
 
             try
             {
-                await dispatcher.Dispatch(new TransportOperations(operation), transportTransaction, new ContextBag())
+                await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), new ContextBag())
                     .ConfigureAwait(false);
             }
             catch (Exception exception)
@@ -39,11 +48,11 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
             }
         }
 
-        UnicastAddressTag destination;
-        IDispatchMessages dispatcher;
-        Dictionary<string, string> headers;
+        readonly UnicastAddressTag destination;
+        readonly IDispatchMessages dispatcher;
+        readonly Dictionary<string, string> headers;
         readonly MetricsContext metricsContext;
-        TransportTransaction transportTransaction = new TransportTransaction();
+        readonly TimeSpan timeToBeReceived;
 
         static ILog log = LogManager.GetLogger<NServiceBusMetricReport>();
     }
