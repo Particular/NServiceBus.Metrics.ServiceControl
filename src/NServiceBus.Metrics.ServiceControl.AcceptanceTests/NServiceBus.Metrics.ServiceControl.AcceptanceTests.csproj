@@ -10,10 +10,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
-    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="7.0.0-beta0012" />
-    <PackageReference Include="NServiceBus.Metrics" Version="3.0.0-rc0003" />
-    <PackageReference Include="NServiceBus.Newtonsoft.Json" Version="2.0.0-beta0003" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.6.0" />
+    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="7.0.0-rc0001" />
+    <PackageReference Include="NServiceBus.Metrics" Version="3.0.0-rc0004" />
+    <PackageReference Include="NServiceBus.Newtonsoft.Json" Version="2.0.0-rc0001" />
     <PackageReference Include="NUnit" Version="3.9.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.9.0" />
   </ItemGroup>
