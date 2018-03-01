@@ -1,6 +1,8 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl.Tests
 {
+    using System;
     using System.IO;
+    using System.Linq;
     using System.Reflection;
     using System.Runtime.CompilerServices;
     using ApprovalTests;
@@ -18,9 +20,21 @@
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void Approve()
         {
-            var publicApi = ApiGenerator.GeneratePublicApi(Assembly);
+            var publicApi = Filter(ApiGenerator.GeneratePublicApi(Assembly));
             Approvals.Verify(WriterFactory.CreateTextWriter(publicApi, "cs"), GetNamer(), Approvals.GetReporter());
         }
+
+        string Filter(string api)
+        {
+            var nl = Environment.NewLine;
+
+            var lines = api.Split(new[] { nl }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(line => !line.StartsWith("[assembly: System.Runtime.Versioning.TargetFrameworkAttribute"))
+                .Where(line => !string.IsNullOrWhiteSpace(line));
+
+            return string.Join(nl, lines);
+        }
+
 
         static IApprovalNamer GetNamer([CallerFilePath] string path = "")
         {
