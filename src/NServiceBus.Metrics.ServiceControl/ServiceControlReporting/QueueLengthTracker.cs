@@ -27,7 +27,7 @@
         {
             var queueLengthTracker = new QueueLengthTracker(metricsContext);
 
-            var logicalSourceKeyFactory = new LogicalSourceKeyFactory(featureContext.Settings.EndpointName());
+            var logicalSourceKeyFactory = new LogicalSourceKeyFactory(featureContext.Settings.EndpointName(), Guid.NewGuid().ToString());
 
             var pipeline = featureContext.Pipeline;
 
@@ -86,10 +86,12 @@
         class LogicalSourceKeyFactory
         {
             readonly string stableKey;
+            readonly string instanceKey;
 
-            public LogicalSourceKeyFactory(string stableKey)
+            public LogicalSourceKeyFactory(string stableKey, string instanceKey)
             {
                 this.stableKey = stableKey;
+                this.instanceKey = instanceKey;
             }
 
             public string BuildKey(AddressTag addressTag)
@@ -109,7 +111,7 @@
 
             string BuildKey(string destination)
             {
-                return $"{destination}-{stableKey}".ToLowerInvariant();
+                return $"{destination}-{stableKey};{instanceKey}".ToLowerInvariant();
             }
         }
 
