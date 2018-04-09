@@ -27,10 +27,11 @@
         {
             var queueLengthTracker = new QueueLengthTracker(metricsContext);
 
+            var logicalSourceKeyFactory = new LogicalSourceKeyFactory(featureContext.Settings.EndpointName());
+
             var pipeline = featureContext.Pipeline;
 
-            //Use HostId as a stable session ID
-            pipeline.Register(b => new DispatchQueueLengthBehavior(queueLengthTracker, new LogicalSourceKeyFactory(b.Build<HostInformation>().HostId.ToString())), nameof(DispatchQueueLengthBehavior));
+            pipeline.Register(b => new DispatchQueueLengthBehavior(queueLengthTracker, logicalSourceKeyFactory), nameof(DispatchQueueLengthBehavior));
 
             pipeline.Register(new IncomingQueueLengthBehavior(queueLengthTracker, featureContext.Settings.LocalAddress()), nameof(IncomingQueueLengthBehavior));
         }
