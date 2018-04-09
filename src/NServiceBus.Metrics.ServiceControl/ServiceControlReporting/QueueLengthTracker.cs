@@ -30,7 +30,7 @@
             var pipeline = featureContext.Pipeline;
 
             //Use HostId as a stable session ID
-            pipeline.Register(b => new DispatchQueueLengthBehavior(queueLengthTracker, b.Build<HostInformation>().HostId), nameof(DispatchQueueLengthBehavior));
+            pipeline.Register(b => new DispatchQueueLengthBehavior(queueLengthTracker, new LogicalSourceKeyFactory(b.Build<HostInformation>().HostId.ToString())), nameof(DispatchQueueLengthBehavior));
 
             pipeline.Register(new IncomingQueueLengthBehavior(queueLengthTracker, featureContext.Settings.LocalAddress()), nameof(IncomingQueueLengthBehavior));
         }
@@ -60,50 +60,55 @@
         class DispatchQueueLengthBehavior : IBehavior<IDispatchContext, IDispatchContext>
         {
             readonly QueueLengthTracker queueLengthTracker;
-            readonly Guid session;
+            readonly LogicalSourceKeyFactory logicalSourceKeyFactory;
 
-            public DispatchQueueLengthBehavior(QueueLengthTracker queueLengthTracker, Guid session)
+            public DispatchQueueLengthBehavior(QueueLengthTracker queueLengthTracker, LogicalSourceKeyFactory logicalSourceKeyFactory)
             {
                 this.queueLengthTracker = queueLengthTracker;
-                this.session = session;
+                this.logicalSourceKeyFactory = logicalSourceKeyFactory;
             }
 
             public Task Invoke(IDispatchContext context, Func<IDispatchContext, Task> next)
             {
                 foreach (var transportOperation in context.Operations)
                 {
-                    var unicastAddressTag = transportOperation.AddressTag as UnicastAddressTag;
+                    var key = logicalSourceKeyFactory.BuildKey(transportOperation.AddressTag);
+                    var sequence = queueLengthTracker.RegisterSend(key);
 
-                    long sequence;
-                    string key;
-
-                    if (unicastAddressTag != null)
-                    {
-                        key = BuildKey(unicastAddressTag.Destination);
-                        sequence = queueLengthTracker.RegisterSend(key);
-                    }
-                    else
-                    {
-                        var multicastAddressTag = transportOperation.AddressTag as MulticastAddressTag;
-                        if (multicastAddressTag != null)
-                        {
-                            key = BuildKey(multicastAddressTag.MessageType.AssemblyQualifiedName);
-                            sequence = queueLengthTracker.RegisterSend(key);
-                        }
-                        else
-                        {
-                            throw new Exception("Not supported address tag");
-                        }
-                    }
                     transportOperation.Message.Headers[KeyHeaderName] = key;
                     transportOperation.Message.Headers[ValueHeaderName] = sequence.ToString();
                 }
                 return next(context);
             }
+        }
+
+        class LogicalSourceKeyFactory
+        {
+            readonly string stableKey;
+
+            public LogicalSourceKeyFactory(string stableKey)
+            {
+                this.stableKey = stableKey;
+            }
+
+            public string BuildKey(AddressTag addressTag)
+            {
+                if (addressTag is UnicastAddressTag unicast)
+                {
+                    return BuildKey(unicast.Destination);
+                }
+
+                if (addressTag is MulticastAddressTag multicast)
+                {
+                    return BuildKey(multicast.MessageType.AssemblyQualifiedName);
+                }
+
+                throw new Exception("Not supported address tag");
+            }
 
             string BuildKey(string destination)
             {
-                return $"{destination}-{session}".ToLowerInvariant();
+                return $"{destination}-{stableKey}".ToLowerInvariant();
             }
         }
 
