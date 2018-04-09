@@ -27,11 +27,11 @@
         {
             var queueLengthTracker = new QueueLengthTracker(metricsContext);
 
-            var logicalSourceKeyFactory = new LogicalSourceKeyFactory(featureContext.Settings.EndpointName(), Guid.NewGuid().ToString());
+            var messageSourceKeyFactory = new MessageSourceKeyFactory(featureContext.Settings.EndpointName(), Guid.NewGuid().ToString());
 
             var pipeline = featureContext.Pipeline;
 
-            pipeline.Register(b => new DispatchQueueLengthBehavior(queueLengthTracker, logicalSourceKeyFactory), nameof(DispatchQueueLengthBehavior));
+            pipeline.Register(b => new DispatchQueueLengthBehavior(queueLengthTracker, messageSourceKeyFactory), nameof(DispatchQueueLengthBehavior));
 
             pipeline.Register(new IncomingQueueLengthBehavior(queueLengthTracker, featureContext.Settings.LocalAddress()), nameof(IncomingQueueLengthBehavior));
         }
@@ -61,19 +61,19 @@
         class DispatchQueueLengthBehavior : IBehavior<IDispatchContext, IDispatchContext>
         {
             readonly QueueLengthTracker queueLengthTracker;
-            readonly LogicalSourceKeyFactory logicalSourceKeyFactory;
+            readonly MessageSourceKeyFactory messageSourceKeyFactory;
 
-            public DispatchQueueLengthBehavior(QueueLengthTracker queueLengthTracker, LogicalSourceKeyFactory logicalSourceKeyFactory)
+            public DispatchQueueLengthBehavior(QueueLengthTracker queueLengthTracker, MessageSourceKeyFactory messageSourceKeyFactory)
             {
                 this.queueLengthTracker = queueLengthTracker;
-                this.logicalSourceKeyFactory = logicalSourceKeyFactory;
+                this.messageSourceKeyFactory = messageSourceKeyFactory;
             }
 
             public Task Invoke(IDispatchContext context, Func<IDispatchContext, Task> next)
             {
                 foreach (var transportOperation in context.Operations)
                 {
-                    var key = logicalSourceKeyFactory.BuildKey(transportOperation.AddressTag);
+                    var key = messageSourceKeyFactory.BuildKey(transportOperation.AddressTag);
                     var sequence = queueLengthTracker.RegisterSend(key);
 
                     transportOperation.Message.Headers[KeyHeaderName] = key;
@@ -83,12 +83,12 @@
             }
         }
 
-        class LogicalSourceKeyFactory
+        class MessageSourceKeyFactory
         {
             readonly string stableKey;
             readonly string instanceKey;
 
-            public LogicalSourceKeyFactory(string stableKey, string instanceKey)
+            public MessageSourceKeyFactory(string stableKey, string instanceKey)
             {
                 this.stableKey = stableKey;
                 this.instanceKey = instanceKey;
