@@ -3,22 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NServiceBus.Extensibility;
 using NServiceBus.Features;
 using NServiceBus.Hosting;
-using NServiceBus.Logging;
 using NServiceBus.Metrics.ServiceControl.ServiceControlReporting;
 using NServiceBus.ObjectBuilder;
-using NServiceBus.Routing;
-using NServiceBus.Support;
 using NServiceBus.Transport;
 using ServiceControl.Monitoring.Data;
 
 namespace NServiceBus.Metrics.ServiceControl
 {
-    using DeliveryConstraints;
     using MessageMutator;
-    using Performance.TimeToBeReceived;
 
     class ReportingFeature : Feature
     {
@@ -104,38 +98,26 @@ namespace NServiceBus.Metrics.ServiceControl
             var metricsContext = new MetricsContext(endpointName);
             SetUpQueueLengthReporting(context, metricsContext);
 
-            Dictionary<string, string> BuildBaseHeaders(IBuilder b)
-            {
-                var hostInformation = b.Build<HostInformation>();
-
-                var headers = new Dictionary<string, string>
-                {
-                    {Headers.OriginatingEndpoint, endpointName},
-                    {Headers.OriginatingMachine, RuntimeEnvironment.MachineName},
-                    {Headers.OriginatingHostId, hostInformation.HostId.ToString("N")},
-                    {Headers.HostDisplayName, hostInformation.DisplayName},
-                };
-
-                if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
-                {
-                    headers.Add(MetricHeaders.MetricInstanceId, instanceId);
-                }
-
-                return headers;
-            }
+            var baseHeadersFactory = new MetricsReportBaseHeaderFactory(endpointName, options);
 
             context.RegisterStartupTask(builder =>
             {
-                var headers = BuildBaseHeaders(builder);
+                var hostInformation = builder.Build<HostInformation>();
+
+                var headers = baseHeadersFactory.BuildBaseHeaders(hostInformation);
 
                 return new ServiceControlReporting(metricsContext, builder, options, headers);
             });
 
             context.RegisterStartupTask(builder =>
             {
-                var headers = BuildBaseHeaders(builder);
+                var hostInformation = builder.Build<HostInformation>();
 
-                return new ServiceControlRawDataReporting(builder, options, headers, durations);
+                var headers = baseHeadersFactory.BuildBaseHeaders(hostInformation);
+
+                var rawDataReporterFactory = new RawDataReporterFactory(builder, options, headers);
+
+                return new ServiceControlRawDataReporting(rawDataReporterFactory, durations);
             });
 
             SetUpOutgoingMessageMutator(context, options);
@@ -199,13 +181,9 @@ namespace NServiceBus.Metrics.ServiceControl
 
         class ServiceControlRawDataReporting : FeatureStartupTask
         {
-            const string TaggedValueMetricContentType = "TaggedLongValueWriterOccurrence";
-
-            public ServiceControlRawDataReporting(IBuilder builder, ReportingOptions options, Dictionary<string, string> headers, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> metrics)
+            public ServiceControlRawDataReporting(RawDataReporterFactory rawDataReporterFactory, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> metrics)
             {
-                this.builder = builder;
-                this.options = options;
-                this.headers = headers;
+                this.rawDataReporterFactory = rawDataReporterFactory;
                 this.metrics = metrics;
 
                 reporters = new List<RawDataReporter>();
@@ -215,7 +193,7 @@ namespace NServiceBus.Metrics.ServiceControl
             {
                 foreach (var metric in metrics)
                 {
-                    reporters.Add(CreateReporter(metric.Key, metric.Value.Item1, metric.Value.Item2));
+                    reporters.Add(rawDataReporterFactory.CreateReporter(metric.Key, metric.Value.Item1, metric.Value.Item2));
                 }
 
                 foreach (var reporter in reporters)
@@ -224,39 +202,6 @@ namespace NServiceBus.Metrics.ServiceControl
                 }
 
                 return Task.FromResult(0);
-            }
-
-            RawDataReporter CreateReporter(string metricType, RingBuffer buffer, TaggedLongValueWriterV1 writer)
-            {
-                var reporterHeaders = new Dictionary<string, string>(headers)
-                {
-                    {Headers.ContentType, TaggedValueMetricContentType},
-                    {MetricHeaders.MetricType, metricType}
-                };
-
-                var dispatcher = builder.Build<IDispatchMessages>();
-                var address = new UnicastAddressTag(options.ServiceControlMetricsAddress);
-
-                async Task Sender(byte[] body)
-                {
-                    var message = new OutgoingMessage(Guid.NewGuid().ToString(), reporterHeaders, body);
-                    var constraints = new List<DeliveryConstraint>
-                    {
-                        new DiscardIfNotReceivedBefore(options.TimeToBeReceived)
-                    };
-                    var operation = new TransportOperation(message, address, DispatchConsistency.Default, constraints);
-                    try
-                    {
-                        await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), new ContextBag())
-                            .ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        log.Error($"Error while reporting raw data to {options.ServiceControlMetricsAddress}.", ex);
-                    }
-                }
-
-                return new RawDataReporter(Sender, buffer, (entries, binaryWriter) => writer.Write(binaryWriter, entries), 2048, options.ServiceControlReportingInterval);
             }
 
             protected override async Task OnStop(IMessageSession session)
@@ -269,13 +214,9 @@ namespace NServiceBus.Metrics.ServiceControl
                 }
             }
 
-            readonly IBuilder builder;
-            readonly ReportingOptions options;
-            readonly Dictionary<string, string> headers;
+            readonly RawDataReporterFactory rawDataReporterFactory;
             readonly Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> metrics;
             readonly List<RawDataReporter> reporters;
-
-            static readonly ILog log = LogManager.GetLogger<ServiceControlRawDataReporting>();
         }
 
         class MetricsIdAttachingMutator : IMutateOutgoingMessages
