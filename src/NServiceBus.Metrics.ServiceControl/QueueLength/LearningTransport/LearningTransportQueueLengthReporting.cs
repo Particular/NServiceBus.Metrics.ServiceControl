@@ -30,6 +30,7 @@
         {
             ReadOnlySettings settings;
             LearningTransportQueueLengthFinder queueLengthFinder;
+            TimeSpan delayBetweenChecks = TimeSpan.FromMilliseconds(500);
 
             protected override Task OnStart(IMessageSession session)
             {
@@ -39,7 +40,7 @@
                     while (!cancellationTokenSource.IsCancellationRequested)
                     {
                         await queueLengthFinder.UpdateQueueLength().ConfigureAwait(false);
-                        await Task.Delay(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false);
+                        await Task.Delay(delayBetweenChecks).ConfigureAwait(false);
                     }
                 });
 
