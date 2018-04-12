@@ -1,9 +1,11 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
+    using Logging;
     using Settings;
     using Transport;
     
@@ -11,8 +13,12 @@
     {
         public Task Warmup(ReadOnlySettings settings)
         {
-            queueBindings = settings.Get<QueueBindings>();
-            transportFolder = GetTransportFolder(settings);
+            var transportFolder = GetTransportFolder(settings);
+            var queueBindings = settings.Get<QueueBindings>();
+            foreach (var q in queueBindings.ReceivingAddresses)
+            {
+                queues.Add(Tuple.Create(q, new DirectoryInfo(Path.Combine(transportFolder, q))));
+            }
             return Task.FromResult(0);
         }
 
@@ -57,28 +63,33 @@
 
         public Task UpdateQueueLength()
         {
-            foreach (var queue in queueBindings.ReceivingAddresses)
+            foreach (var queue in queues)
             {
-                var fullPath = Path.Combine(transportFolder, queue);
-                var dirInfo = new DirectoryInfo(fullPath);
-
-                if (dirInfo.Exists)
+                try
                 {
-                    var msgCount = dirInfo.EnumerateFiles().Count();
-                    probe.Signal(queue, msgCount);
+                    if (queue.Item2.Exists)
+                    {
+                        var msgCount = queue.Item2.EnumerateFiles().Count();
+                        probe.Signal(queue.Item1, msgCount);
+                    }
+                }
+                catch (DirectoryNotFoundException dnfex)
+                {
+                    Log.Error($"Error reading length of queue {queue.Item1}", dnfex);
                 }
             }
 
             return Task.FromResult(0);
         }
 
-        QueueBindings queueBindings;
-        string transportFolder;
+        List<Tuple<string, DirectoryInfo>> queues = new List<Tuple<string, DirectoryInfo>>();
         IQueueLengthProbe probe;
 
         public LearningTransportQueueLengthFinder(IQueueLengthProbe probe)
         {
             this.probe = probe;
         }
+
+        static ILog Log = LogManager.GetLogger<LearningTransportQueueLengthFinder>();
     }
 }
