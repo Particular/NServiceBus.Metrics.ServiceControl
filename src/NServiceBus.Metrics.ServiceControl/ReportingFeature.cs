@@ -74,6 +74,20 @@ namespace NServiceBus.Metrics.ServiceControl
                 metrics[name] = Tuple.Create(buffer, writer);
             }
 
+            void RegisterGauge(IGaugeProbe probe)
+            {
+                var buffer = new RingBuffer();
+                var writer = new TaggedLongValueWriterV1();
+                var name = probe.Name.Replace(" ", "");
+
+                probe.Register((ref GaugeEvent e) =>
+                {
+                    var tag = writer.GetTagId(e.Tag ?? "");
+                    RingBufferExtensions.WriteTaggedValue(buffer, name, e.Value, tag);
+                });
+                metrics[name] = Tuple.Create(buffer, writer);
+            }
+
             options.RegisterObservers(probeContext =>
             {
                 foreach (var durationProbe in probeContext.Durations)
@@ -90,6 +104,14 @@ namespace NServiceBus.Metrics.ServiceControl
                     if (signalProbe.Name == "Retries")
                     {
                         RegisterSignal(signalProbe);
+                    }
+                }
+
+                foreach (var gaugeProbe in probeContext.Gauges)
+                {
+                    if (gaugeProbe.Name == "Queue Length")
+                    {
+                        RegisterGauge(gaugeProbe);
                     }
                 }
             });
