@@ -2,10 +2,13 @@
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Linq;
     using System.Threading.Tasks;
+    using DelayedDelivery;
     using Features;
     using Pipeline;
     using Routing;
+    using Transport;
 
     class QueueLengthTracker
     {
@@ -28,9 +31,11 @@
 
             var messageSourceKeyFactory = new MessageSourceKeyFactory(featureContext.Settings.EndpointName(), Guid.NewGuid().ToString());
 
+            var trackingpolicy = new QueueLengthTrackingPolicy();
+
             var pipeline = featureContext.Pipeline;
 
-            pipeline.Register(b => new DispatchQueueLengthBehavior(queueLengthTracker, messageSourceKeyFactory), nameof(DispatchQueueLengthBehavior));
+            pipeline.Register(new DispatchQueueLengthBehavior(queueLengthTracker, messageSourceKeyFactory, trackingpolicy), nameof(DispatchQueueLengthBehavior));
 
             pipeline.Register(new IncomingQueueLengthBehavior(queueLengthTracker, featureContext.Settings.LocalAddress()), nameof(IncomingQueueLengthBehavior));
         }
@@ -61,24 +66,58 @@
         {
             readonly QueueLengthTracker queueLengthTracker;
             readonly MessageSourceKeyFactory messageSourceKeyFactory;
+            readonly QueueLengthTrackingPolicy trackingPolicy;
 
-            public DispatchQueueLengthBehavior(QueueLengthTracker queueLengthTracker, MessageSourceKeyFactory messageSourceKeyFactory)
+            public DispatchQueueLengthBehavior(QueueLengthTracker queueLengthTracker, MessageSourceKeyFactory messageSourceKeyFactory, QueueLengthTrackingPolicy trackingPolicy)
             {
                 this.queueLengthTracker = queueLengthTracker;
                 this.messageSourceKeyFactory = messageSourceKeyFactory;
+                this.trackingPolicy = trackingPolicy;
             }
 
             public Task Invoke(IDispatchContext context, Func<IDispatchContext, Task> next)
             {
                 foreach (var transportOperation in context.Operations)
                 {
-                    var key = messageSourceKeyFactory.BuildKey(transportOperation.AddressTag);
-                    var sequence = queueLengthTracker.RegisterSend(key);
+                    if (trackingPolicy.ShouldTrack(transportOperation))
+                    {
+                        var key = messageSourceKeyFactory.BuildKey(transportOperation.AddressTag);
+                        var sequence = queueLengthTracker.RegisterSend(key);
 
-                    transportOperation.Message.Headers[KeyHeaderName] = key;
-                    transportOperation.Message.Headers[ValueHeaderName] = sequence.ToString();
+                        transportOperation.Message.Headers[KeyHeaderName] = key;
+                        transportOperation.Message.Headers[ValueHeaderName] = sequence.ToString();
+                    }
                 }
                 return next(context);
+            }
+        }
+
+        class QueueLengthTrackingPolicy
+        {
+            public bool ShouldTrack(TransportOperation transportOperation)
+            {
+                if (transportOperation.DeliveryConstraints.OfType<DelayedDeliveryConstraint>().Any())
+                {
+                    // Do not track native delayed messages
+                    return false;
+                }
+
+                var headers = transportOperation.Message.Headers;
+
+                if (headers.ContainsKey(Headers.ControlMessageHeader))
+                {
+                    // Do not track control messages
+                    return false;
+                }
+
+                if (headers.ContainsKey("NServiceBus.Timeout.Expire") || headers.ContainsKey("NServiceBus.Timeout.RouteExpiredTimeoutTo"))
+                {
+                    // Do not track messages headed for the timeout manager
+                    return false;
+                }
+
+                // Track everything else
+                return true;
             }
         }
 
