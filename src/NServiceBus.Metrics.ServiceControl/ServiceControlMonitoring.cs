@@ -35,6 +35,7 @@
             var options = settings.Get<ReportingOptions>();
             var container = context.Container;
 
+            container.ConfigureComponent(() => new QueueLengthBufferReporter(buffers), DependencyLifecycle.SingleInstance);
             container.ConfigureComponent(() => options, DependencyLifecycle.SingleInstance);
             container.ConfigureComponent(builder =>
             {
@@ -231,6 +232,7 @@
                     BuildReporter("ProcessingTime", buffers.ProcessingTime),
                     BuildReporter("CriticalTime", buffers.CriticalTime),
                     BuildReporter("Retries", buffers.Retries),
+                    BuildReporter("QueueLength", buffers.QueueLength)
                 };
             }
 
