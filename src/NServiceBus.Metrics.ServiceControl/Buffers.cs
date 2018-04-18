@@ -15,6 +15,7 @@
         public readonly Buffer ProcessingTime = new Buffer();
         public readonly Buffer CriticalTime = new Buffer();
         public readonly Buffer Retries = new Buffer();
+        public readonly Buffer QueueLength = new Buffer();
 
         static void Write(long value, string tag, Buffer buffer)
         {
@@ -50,6 +51,11 @@
         public void ReportRetry(string messageType)
         {
             Write(1, messageType, Retries);
+        }
+
+        public void ReportQueueLength(long value, string queueName)
+        {
+            Write(value, queueName, QueueLength);
         }
     }
 }
