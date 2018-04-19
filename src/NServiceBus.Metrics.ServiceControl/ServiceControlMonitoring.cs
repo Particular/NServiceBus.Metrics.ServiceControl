@@ -55,9 +55,11 @@
             }, DependencyLifecycle.SingleInstance);
 
             var endpointName = settings.EndpointName();
-            var metricsContext = new MetricsContext(endpointName);
-            container.ConfigureComponent(() => metricsContext, DependencyLifecycle.SingleInstance);
-            QueueLengthTracker.SetUp(metricsContext, context);
+            var localAddess = settings.LocalAddress();
+
+            var metricsReportData = new NativeQueueLengthData(localAddess.ToString());
+
+            container.ConfigureComponent(() => metricsReportData, DependencyLifecycle.SingleInstance);
 
             context.Pipeline.Register<ServiceControlMonitoringRegistration>();
 
@@ -153,25 +155,25 @@
 
         class ServiceControlReporting : FeatureStartupTask
         {
-            public ServiceControlReporting(MetricsContext metricsContext, ISendMessages dispatcher, ReportingOptions options)
+            public ServiceControlReporting(NativeQueueLengthData nativeQueueLengthData, ISendMessages dispatcher, ReportingOptions options)
             {
-                this.metricsContext = metricsContext;
+                this.nativeQueueLengthData = nativeQueueLengthData;
                 this.dispatcher = dispatcher;
                 this.options = options;
             }
 
             protected override void OnStart()
             {
-                HeaderValues.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.MetricReport");
+                HeaderValues.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.NativeQueueLengthReport");
                 HeaderValues.Add(Headers.ContentType, ContentTypes.Json);
 
-                var serviceControlReport = new NServiceBusMetricReport(dispatcher, options, HeaderValues, metricsContext);
+                var nativeQueueLengthReport = new NativeQueueLengthReport(dispatcher, options, HeaderValues, nativeQueueLengthData);
 
                 task = Task.Run(async () =>
                 {
                     while (cancellationTokenSource.IsCancellationRequested == false)
                     {
-                        serviceControlReport.RunReport();
+                        nativeQueueLengthReport.RunReport();
                         await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
                     }
                 });
@@ -184,7 +186,7 @@
             }
 
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            readonly MetricsContext metricsContext;
+            readonly NativeQueueLengthData nativeQueueLengthData;
             readonly ISendMessages dispatcher;
             readonly ReportingOptions options;
             public Dictionary<string, string> HeaderValues { get; set; }

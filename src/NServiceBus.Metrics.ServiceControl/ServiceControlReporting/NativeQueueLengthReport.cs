@@ -9,18 +9,18 @@
 
     class NServiceBusMetricReport
     {
-        public NServiceBusMetricReport(ISendMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, MetricsContext metricsContext)
+        public NServiceBusMetricReport(ISendMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, MetricsReportData metricsReportData)
         {
             this.dispatcher = dispatcher;
             this.headers = headers;
-            this.metricsContext = metricsContext;
+            this.metricsReportData = metricsReportData;
             destination = options.ServiceControlMetricsAddress;
             ttbr = options.TimeToBeReceived;
         }
 
         public void RunReport()
         {
-            var stringBody = $@"{{""Data"" : {metricsContext.ToJson()}}}";
+            var stringBody = metricsReportData.ToJson();
             var body = Encoding.UTF8.GetBytes(stringBody);
 
             try
@@ -43,7 +43,7 @@
             }
         }
 
-        readonly MetricsContext metricsContext;
+        readonly MetricsReportData metricsReportData;
         readonly string destination;
         readonly ISendMessages dispatcher;
         readonly Dictionary<string, string> headers;
