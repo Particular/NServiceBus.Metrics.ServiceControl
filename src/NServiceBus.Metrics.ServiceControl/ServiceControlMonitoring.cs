@@ -82,11 +82,11 @@
                 headers.Add(MetricHeaders.MetricInstanceId, instanceId);
             }
 
-            container.ConfigureComponent<ServiceControlReporting>(DependencyLifecycle.SingleInstance)
+            container.ConfigureComponent<NativeQueueLengthReporting>(DependencyLifecycle.SingleInstance)
                 .ConfigureProperty(task => task.HeaderValues, headers);
 
             RegisterStartupTask<ReportingStartupTask>();
-            RegisterStartupTask<ServiceControlReporting>();
+            RegisterStartupTask<NativeQueueLengthReporting>();
         }
 
         class ServiceControlMonitoringRegistrationBehavior : IBehavior<IncomingContext>
@@ -153,9 +153,9 @@
             }
         }
 
-        class ServiceControlReporting : FeatureStartupTask
+        class NativeQueueLengthReporting : FeatureStartupTask
         {
-            public ServiceControlReporting(NativeQueueLengthData nativeQueueLengthData, ISendMessages dispatcher, ReportingOptions options)
+            public NativeQueueLengthReporting(NativeQueueLengthData nativeQueueLengthData, ISendMessages dispatcher, ReportingOptions options)
             {
                 this.nativeQueueLengthData = nativeQueueLengthData;
                 this.dispatcher = dispatcher;

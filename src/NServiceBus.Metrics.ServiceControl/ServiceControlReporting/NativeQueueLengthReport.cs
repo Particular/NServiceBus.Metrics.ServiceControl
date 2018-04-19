@@ -7,20 +7,20 @@
     using Transports;
     using Unicast;
 
-    class NServiceBusMetricReport
+    class NativeQueueLengthReport
     {
-        public NServiceBusMetricReport(ISendMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, MetricsReportData metricsReportData)
+        public NativeQueueLengthReport(ISendMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, NativeQueueLengthData nativeQueueLengthData)
         {
             this.dispatcher = dispatcher;
             this.headers = headers;
-            this.metricsReportData = metricsReportData;
+            this.nativeQueueLengthData = nativeQueueLengthData;
             destination = options.ServiceControlMetricsAddress;
             ttbr = options.TimeToBeReceived;
         }
 
         public void RunReport()
         {
-            var stringBody = metricsReportData.ToJson();
+            var stringBody = nativeQueueLengthData.ToJson();
             var body = Encoding.UTF8.GetBytes(stringBody);
 
             try
@@ -43,11 +43,11 @@
             }
         }
 
-        readonly MetricsReportData metricsReportData;
+        readonly NativeQueueLengthData nativeQueueLengthData;
         readonly string destination;
         readonly ISendMessages dispatcher;
         readonly Dictionary<string, string> headers;
         readonly TimeSpan ttbr;
-        static ILog log = LogManager.GetLogger<NServiceBusMetricReport>();
+        static ILog log = LogManager.GetLogger<NativeQueueLengthReport>();
     }
 }
