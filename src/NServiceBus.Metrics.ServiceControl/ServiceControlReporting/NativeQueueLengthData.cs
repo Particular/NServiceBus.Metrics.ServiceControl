@@ -11,7 +11,11 @@
 
         public string ToJson()
         {
-            return SimpleJson.SerializeObject(new {InputQueue = inputQueue});
+            return SimpleJson.SerializeObject(new
+            {
+                Version = 1,
+                InputQueue = inputQueue
+            });
         }
     }
 }
