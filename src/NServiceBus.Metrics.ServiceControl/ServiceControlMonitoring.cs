@@ -85,6 +85,16 @@
 
             RegisterStartupTask<ReportingStartupTask>();
             RegisterStartupTask<ServiceControlReporting>();
+
+
+            var queueLengthReport = new QueueLengthReport();
+            var queueLengthReporter = new NativeQueueLengthReporter(queueLengthReport);
+            queueLengthReporter.ReportQueueLength(settings.LocalAddress().ToString(), null);
+            container.ConfigureComponent<IReportNativeQueueLengths>(() => queueLengthReporter, DependencyLifecycle.SingleInstance);
+            container.ConfigureComponent<PeriodicallySendQueueDataToServiceControl>(DependencyLifecycle.SingleInstance)
+                .ConfigureProperty(task => task.HeaderValues, headers);
+
+            RegisterStartupTask<PeriodicallySendQueueDataToServiceControl>();
         }
 
         class ServiceControlMonitoringRegistrationBehavior : IBehavior<IncomingContext>
