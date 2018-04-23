@@ -1,12 +1,12 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
 {
-    class NativeQueueLengthData
+    class EndpointMetadata
     {
-        string inputQueue;
+        string localAddress;
 
-        public NativeQueueLengthData(string inputQueue)
+        public EndpointMetadata(string localAddress)
         {
-            this.inputQueue = inputQueue;
+            this.localAddress = localAddress;
         }
 
         public string ToJson()
@@ -14,7 +14,7 @@
             return SimpleJson.SerializeObject(new
             {
                 Version = 1,
-                InputQueue = inputQueue
+                LocalAddress = localAddress
             });
         }
     }

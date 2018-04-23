@@ -57,7 +57,7 @@
             var endpointName = settings.EndpointName();
             var localAddess = settings.LocalAddress();
 
-            var metricsReportData = new NativeQueueLengthData(localAddess.ToString());
+            var metricsReportData = new EndpointMetadata(localAddess.ToString());
 
             container.ConfigureComponent(() => metricsReportData, DependencyLifecycle.SingleInstance);
 
@@ -155,19 +155,19 @@
 
         class NativeQueueLengthReporting : FeatureStartupTask
         {
-            public NativeQueueLengthReporting(NativeQueueLengthData nativeQueueLengthData, ISendMessages dispatcher, ReportingOptions options)
+            public NativeQueueLengthReporting(EndpointMetadata endpointMetadata, ISendMessages dispatcher, ReportingOptions options)
             {
-                this.nativeQueueLengthData = nativeQueueLengthData;
+                this.endpointMetadata = endpointMetadata;
                 this.dispatcher = dispatcher;
                 this.options = options;
             }
 
             protected override void OnStart()
             {
-                HeaderValues.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.NativeQueueLengthReport");
+                HeaderValues.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.EndpointMetadataReport");
                 HeaderValues.Add(Headers.ContentType, ContentTypes.Json);
 
-                var nativeQueueLengthReport = new NativeQueueLengthReport(dispatcher, options, HeaderValues, nativeQueueLengthData);
+                var nativeQueueLengthReport = new EndpointMetadataReport(dispatcher, options, HeaderValues, endpointMetadata);
 
                 task = Task.Run(async () =>
                 {
@@ -186,7 +186,7 @@
             }
 
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            readonly NativeQueueLengthData nativeQueueLengthData;
+            readonly EndpointMetadata endpointMetadata;
             readonly ISendMessages dispatcher;
             readonly ReportingOptions options;
             public Dictionary<string, string> HeaderValues { get; set; }
