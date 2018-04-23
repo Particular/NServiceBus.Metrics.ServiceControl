@@ -55,11 +55,7 @@
             }, DependencyLifecycle.SingleInstance);
 
             var endpointName = settings.EndpointName();
-            var localAddess = settings.LocalAddress();
-
-            var metricsReportData = new EndpointMetadata(localAddess.ToString());
-
-            container.ConfigureComponent(() => metricsReportData, DependencyLifecycle.SingleInstance);
+            
 
             context.Pipeline.Register<ServiceControlMonitoringRegistration>();
 
@@ -82,11 +78,15 @@
                 headers.Add(MetricHeaders.MetricInstanceId, instanceId);
             }
 
-            container.ConfigureComponent<NativeQueueLengthReporting>(DependencyLifecycle.SingleInstance)
+            var metricsReportData = new EndpointMetadata(settings.LocalAddress().ToString());
+
+            container.ConfigureComponent(() => metricsReportData, DependencyLifecycle.SingleInstance);
+
+            container.ConfigureComponent<EndpointMetadataReporting>(DependencyLifecycle.SingleInstance)
                 .ConfigureProperty(task => task.HeaderValues, headers);
 
             RegisterStartupTask<ReportingStartupTask>();
-            RegisterStartupTask<NativeQueueLengthReporting>();
+            RegisterStartupTask<EndpointMetadataReporting>();
         }
 
         class ServiceControlMonitoringRegistrationBehavior : IBehavior<IncomingContext>
@@ -153,9 +153,9 @@
             }
         }
 
-        class NativeQueueLengthReporting : FeatureStartupTask
+        class EndpointMetadataReporting : FeatureStartupTask
         {
-            public NativeQueueLengthReporting(EndpointMetadata endpointMetadata, ISendMessages dispatcher, ReportingOptions options)
+            public EndpointMetadataReporting(EndpointMetadata endpointMetadata, ISendMessages dispatcher, ReportingOptions options)
             {
                 this.endpointMetadata = endpointMetadata;
                 this.dispatcher = dispatcher;
