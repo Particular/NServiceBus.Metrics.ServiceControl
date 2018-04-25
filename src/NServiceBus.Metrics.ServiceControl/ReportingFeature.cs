@@ -116,7 +116,7 @@ namespace NServiceBus.Metrics.ServiceControl
 
         void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
         {
-            var metricsContext = new MetricsContext(endpointName);
+            var metricsContext = new EndpointMetadata(context.Settings.LocalAddress());
 
             Dictionary<string, string> BuildBaseHeaders(IBuilder b)
             {
@@ -165,20 +165,20 @@ namespace NServiceBus.Metrics.ServiceControl
 
         class ServiceControlReporting : FeatureStartupTask
         {
-            public ServiceControlReporting(MetricsContext metricsContext, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
+            public ServiceControlReporting(EndpointMetadata endpointMetadata, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
             {
-                this.metricsContext = metricsContext;
+                this.endpointMetadata = endpointMetadata;
                 this.builder = builder;
                 this.options = options;
                 this.headers = headers;
 
-                headers.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.MetricReport");
+                headers.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.EndpointMetadataReport");
                 headers.Add(Headers.ContentType, ContentTypes.Json);
             }
 
             protected override Task OnStart(IMessageSession session)
             {
-                var serviceControlReport = new NServiceBusMetricReport(builder.Build<IDispatchMessages>(), options, headers, metricsContext);
+                var serviceControlReport = new EndpointMetadataReport(builder.Build<IDispatchMessages>(), options, headers, endpointMetadata);
 
                 task = Task.Run(async () =>
                 {
@@ -199,7 +199,7 @@ namespace NServiceBus.Metrics.ServiceControl
             }
 
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            readonly MetricsContext metricsContext;
+            readonly EndpointMetadata endpointMetadata;
             readonly IBuilder builder;
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;

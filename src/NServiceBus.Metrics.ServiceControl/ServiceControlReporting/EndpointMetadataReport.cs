@@ -12,13 +12,13 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
     using DeliveryConstraints;
     using Performance.TimeToBeReceived;
 
-    class NServiceBusMetricReport
+    class EndpointMetadataReport
     {
-        public NServiceBusMetricReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, MetricsContext metricsContext)
+        public EndpointMetadataReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
         {
             this.dispatcher = dispatcher;
             this.headers = headers;
-            this.metricsContext = metricsContext;
+            this.endpointMetadata = endpointMetadata;
 
             destination = new UnicastAddressTag(options.ServiceControlMetricsAddress);
             timeToBeReceived = options.TimeToBeReceived;
@@ -26,7 +26,7 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
 
         public async Task RunReportAsync()
         {
-            var stringBody = $@"{{""Data"" : {metricsContext.ToJson()}}}";
+            var stringBody = endpointMetadata.ToJson();
             var body = Encoding.UTF8.GetBytes(stringBody);
 
             var message = new OutgoingMessage(Guid.NewGuid().ToString(), headers, body);
@@ -51,9 +51,9 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
         readonly UnicastAddressTag destination;
         readonly IDispatchMessages dispatcher;
         readonly Dictionary<string, string> headers;
-        readonly MetricsContext metricsContext;
+        readonly EndpointMetadata endpointMetadata;
         readonly TimeSpan timeToBeReceived;
 
-        static ILog log = LogManager.GetLogger<NServiceBusMetricReport>();
+        static ILog log = LogManager.GetLogger<EndpointMetadataReport>();
     }
 }
