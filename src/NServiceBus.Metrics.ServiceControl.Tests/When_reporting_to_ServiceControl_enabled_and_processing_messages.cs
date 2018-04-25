@@ -13,7 +13,7 @@
     using Pipeline;
     using Pipeline.Contexts;
 
-    public class When_reporting_to_ServiceControl_enabled : NServiceBusAcceptanceTest
+    public class When_reporting_to_ServiceControl_enabled_and_processing_messages : NServiceBusAcceptanceTest
     {
         static readonly byte[] MyMessageNameBytes = new UTF8Encoding(false).GetBytes(typeof(MyMessage).AssemblyQualifiedName);
         static readonly byte[] ThrowingMessageNameBytes = new UTF8Encoding(false).GetBytes(typeof(ThrowingMessage).AssemblyQualifiedName);
@@ -22,7 +22,7 @@
         const string Message = "Thrown on purpose!";
 
         [Test]
-        public void Should_report_properly()
+        public void Should_report_metrics_values()
         {
             var context = new Context();
 

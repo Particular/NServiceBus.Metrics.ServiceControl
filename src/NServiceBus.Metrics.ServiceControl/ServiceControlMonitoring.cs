@@ -35,7 +35,7 @@
             var options = settings.Get<ReportingOptions>();
             var container = context.Container;
 
-            container.ConfigureComponent(() => new QueueLengthBufferReporter(buffers), DependencyLifecycle.SingleInstance);
+            container.ConfigureComponent<IReportNativeQueueLength>(() => new QueueLengthBufferReporter(buffers), DependencyLifecycle.SingleInstance);
             container.ConfigureComponent(() => options, DependencyLifecycle.SingleInstance);
             container.ConfigureComponent(builder =>
             {
