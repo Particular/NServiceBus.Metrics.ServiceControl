@@ -94,9 +94,24 @@ namespace NServiceBus.Metrics.ServiceControl
                 }
             });
 
+            var queueLengthMetric = SetupQueueLengthReporting(context);
+
+            metrics.Add("QueueLength", queueLengthMetric);
+
             var reportingOptions = ReportingOptions.Get(options);
 
             SetUpServiceControlReporting(context, reportingOptions, endpointName, metrics);
+        }
+
+        static Tuple<RingBuffer, TaggedLongValueWriterV1> SetupQueueLengthReporting(FeatureConfigurationContext context)
+        {
+            var queueLengthBuffer = new RingBuffer();
+            var queueLengthWriter = new TaggedLongValueWriterV1();
+            var queueLengthReporter = new QueueLengthBufferReporter(queueLengthBuffer, queueLengthWriter);
+
+            context.Container.RegisterSingleton(queueLengthReporter);
+
+            return new Tuple<RingBuffer, TaggedLongValueWriterV1>(queueLengthBuffer, queueLengthWriter);
         }
 
         void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)

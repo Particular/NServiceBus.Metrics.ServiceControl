@@ -1,4 +1,11 @@
-﻿namespace NServiceBus
+﻿namespace NServiceBus.Metrics.ServiceControl
+{
+    public interface IReportNativeQueueLength
+    {
+        void ReportQueueLength(string physicalQueueName, long queueLength);
+    }
+}
+namespace NServiceBus
 {
     public class static MetricsOptionsExtensions
     {
