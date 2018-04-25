@@ -109,7 +109,7 @@ namespace NServiceBus.Metrics.ServiceControl
             var queueLengthWriter = new TaggedLongValueWriterV1();
             var queueLengthReporter = new QueueLengthBufferReporter(queueLengthBuffer, queueLengthWriter);
 
-            context.Container.RegisterSingleton(queueLengthReporter);
+            context.Container.RegisterSingleton<IReportNativeQueueLength>(queueLengthReporter);
 
             return new Tuple<RingBuffer, TaggedLongValueWriterV1>(queueLengthBuffer, queueLengthWriter);
         }
