@@ -94,7 +94,7 @@ namespace NServiceBus.Metrics.ServiceControl
                 }
             });
 
-            var queueLengthMetric = SetupQueueLengthReporting(context);
+            var queueLengthMetric = SetupQueueLengthMetric(context);
 
             metrics.Add("QueueLength", queueLengthMetric);
 
@@ -103,7 +103,7 @@ namespace NServiceBus.Metrics.ServiceControl
             SetUpServiceControlReporting(context, reportingOptions, endpointName, metrics);
         }
 
-        static Tuple<RingBuffer, TaggedLongValueWriterV1> SetupQueueLengthReporting(FeatureConfigurationContext context)
+        static Tuple<RingBuffer, TaggedLongValueWriterV1> SetupQueueLengthMetric(FeatureConfigurationContext context)
         {
             var queueLengthBuffer = new RingBuffer();
             var queueLengthWriter = new TaggedLongValueWriterV1();
@@ -117,7 +117,6 @@ namespace NServiceBus.Metrics.ServiceControl
         void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
         {
             var metricsContext = new MetricsContext(endpointName);
-            SetUpQueueLengthReporting(context, metricsContext);
 
             Dictionary<string, string> BuildBaseHeaders(IBuilder b)
             {
@@ -154,11 +153,6 @@ namespace NServiceBus.Metrics.ServiceControl
             });
 
             SetUpOutgoingMessageMutator(context, options);
-        }
-
-        static void SetUpQueueLengthReporting(FeatureConfigurationContext context, MetricsContext metricsContext)
-        {
-            QueueLengthTracker.SetUp(metricsContext, context);
         }
 
         void SetUpOutgoingMessageMutator(FeatureConfigurationContext context, ReportingOptions options)
