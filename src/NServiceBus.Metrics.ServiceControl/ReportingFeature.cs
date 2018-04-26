@@ -117,9 +117,7 @@ namespace NServiceBus.Metrics.ServiceControl
 
         void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
         {
-            var metricsContext = new MetricsContext(endpointName);
             var endpointMetadata = new EndpointMetadata(context.Settings.LocalAddress());
-            SetUpQueueLengthReporting(context, metricsContext);
 
             Dictionary<string, string> BuildBaseHeaders(IBuilder b)
             {
@@ -145,13 +143,6 @@ namespace NServiceBus.Metrics.ServiceControl
             {
                 var headers = BuildBaseHeaders(builder);
 
-                return new ServiceControlReporting(metricsContext, builder, options, headers);
-            });
-
-            context.RegisterStartupTask(builder =>
-            {
-                var headers = BuildBaseHeaders(builder);
-
                 return new ServiceControlMetadataReporting(endpointMetadata, builder, options, headers);
             });
 
@@ -165,60 +156,12 @@ namespace NServiceBus.Metrics.ServiceControl
             SetUpOutgoingMessageMutator(context, options);
         }
 
-        static void SetUpQueueLengthReporting(FeatureConfigurationContext context, MetricsContext metricsContext)
-        {
-            QueueLengthTracker.SetUp(metricsContext, context);
-        }
-
         void SetUpOutgoingMessageMutator(FeatureConfigurationContext context, ReportingOptions options)
         {
             if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
             {
                 context.Container.ConfigureComponent(() => new MetricsIdAttachingMutator(instanceId), DependencyLifecycle.SingleInstance);
             }
-        }
-
-        class ServiceControlReporting : FeatureStartupTask
-        {
-            public ServiceControlReporting(MetricsContext metricsContext, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
-            {
-                this.metricsContext = metricsContext;
-                this.builder = builder;
-                this.options = options;
-                this.headers = headers;
-
-                headers.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.MetricReport");
-                headers.Add(Headers.ContentType, ContentTypes.Json);
-            }
-
-            protected override Task OnStart(IMessageSession session)
-            {
-                var serviceControlReport = new NServiceBusMetricReport(builder.Build<IDispatchMessages>(), options, headers, metricsContext);
-
-                task = Task.Run(async () =>
-                {
-                    while (cancellationTokenSource.IsCancellationRequested == false)
-                    {
-                        await serviceControlReport.RunReportAsync().ConfigureAwait(false);
-                        await Task.Delay(options.ServiceControlReportingInterval).ConfigureAwait(false);
-                    }
-                });
-
-                return Task.FromResult(0);
-            }
-
-            protected override Task OnStop(IMessageSession session)
-            {
-                cancellationTokenSource.Cancel();
-                return task;
-            }
-
-            readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            readonly MetricsContext metricsContext;
-            readonly IBuilder builder;
-            readonly ReportingOptions options;
-            readonly Dictionary<string, string> headers;
-            Task task;
         }
 
         class ServiceControlMetadataReporting : FeatureStartupTask
