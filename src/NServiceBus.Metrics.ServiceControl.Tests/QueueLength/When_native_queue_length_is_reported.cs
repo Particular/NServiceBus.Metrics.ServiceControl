@@ -10,7 +10,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
     using Pipeline.Contexts;
     using Conventions = AcceptanceTesting.Customization.Conventions;
 
-    public class When_native_queue_legth_is_reproted : NServiceBusAcceptanceTest
+    public class When_native_queue_length_is_reproted : NServiceBusAcceptanceTest
     {
         [Test]
         public void Should_send_reported_values_to_ServiceControl()
