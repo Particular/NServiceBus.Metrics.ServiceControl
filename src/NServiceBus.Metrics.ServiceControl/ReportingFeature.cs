@@ -118,6 +118,7 @@ namespace NServiceBus.Metrics.ServiceControl
         void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
         {
             var metricsContext = new MetricsContext(endpointName);
+            var endpointMetadata = new EndpointMetadata(context.Settings.LocalAddress());
             SetUpQueueLengthReporting(context, metricsContext);
 
             Dictionary<string, string> BuildBaseHeaders(IBuilder b)
@@ -145,6 +146,13 @@ namespace NServiceBus.Metrics.ServiceControl
                 var headers = BuildBaseHeaders(builder);
 
                 return new ServiceControlReporting(metricsContext, builder, options, headers);
+            });
+
+            context.RegisterStartupTask(builder =>
+            {
+                var headers = BuildBaseHeaders(builder);
+
+                return new ServiceControlMetadataReporting(endpointMetadata, builder, options, headers);
             });
 
             context.RegisterStartupTask(builder =>
@@ -207,6 +215,49 @@ namespace NServiceBus.Metrics.ServiceControl
 
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             readonly MetricsContext metricsContext;
+            readonly IBuilder builder;
+            readonly ReportingOptions options;
+            readonly Dictionary<string, string> headers;
+            Task task;
+        }
+
+        class ServiceControlMetadataReporting : FeatureStartupTask
+        {
+            public ServiceControlMetadataReporting(EndpointMetadata endpointMetadata, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
+            {
+                this.endpointMetadata = endpointMetadata;
+                this.builder = builder;
+                this.options = options;
+                this.headers = headers;
+
+                headers.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.EndpointMetadataReport");
+                headers.Add(Headers.ContentType, ContentTypes.Json);
+            }
+
+            protected override Task OnStart(IMessageSession session)
+            {
+                var serviceControlReport = new NServiceBusMetadataReport(builder.Build<IDispatchMessages>(), options, headers, endpointMetadata);
+
+                task = Task.Run(async () =>
+                {
+                    while (cancellationTokenSource.IsCancellationRequested == false)
+                    {
+                        await serviceControlReport.RunReportAsync().ConfigureAwait(false);
+                        await Task.Delay(options.ServiceControlReportingInterval).ConfigureAwait(false);
+                    }
+                });
+
+                return Task.FromResult(0);
+            }
+
+            protected override Task OnStop(IMessageSession session)
+            {
+                cancellationTokenSource.Cancel();
+                return task;
+            }
+
+            readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+            readonly EndpointMetadata endpointMetadata;
             readonly IBuilder builder;
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;
