@@ -2,6 +2,7 @@
 {
     public interface IReportNativeQueueLength
     {
+        System.Collections.Generic.IEnumerable<string> MonitoredQueues { get; }
         void ReportQueueLength(string physicalQueueName, long queueLength);
     }
 }
