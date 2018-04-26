@@ -32,5 +32,10 @@
 
             AcceptanceTesting.Customization.Conventions.DefaultRunDescriptor = () => ScenarioDescriptors.Transports.Default;
         }
+
+        protected static bool ContainsPattern(byte[] source, byte[] pattern)
+        {
+            return Enumerable.Range(0, source.Length - 1).Any(i => source.Skip(i).Take(pattern.Length).SequenceEqual(pattern));
+        }
     }
 }

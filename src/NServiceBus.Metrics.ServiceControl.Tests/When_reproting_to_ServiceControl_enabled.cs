@@ -3,6 +3,7 @@ using NUnit.Framework;
 
 namespace NServiceBus.Metrics.ServiceControl.Tests
 {
+    using System;
     using Conventions = AcceptanceTesting.Customization.Conventions;
     using EndpointTemplates;
 
@@ -11,16 +12,23 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
         [Test]
         public void Should_periodically_send_metadata_report()
         {
-            Scenario.Define<Context>()
+            var context = Scenario.Define<Context>()
                 .WithEndpoint<MonitoredEndpoint>()
                 .WithEndpoint<MonitoringEndpoint>()
                 .Done(c => c.MetadataReportReceived)
                 .Run();
+
+            var localAddress = $"{Conventions.EndpointNamingConvention(typeof(MonitoredEndpoint))}@{Environment.MachineName}";
+            
+            Assert.AreEqual(1, context.Report.Version);
+            Assert.AreEqual(localAddress, context.Report.LocalAddress);
         }
 
         class Context : ScenarioContext
         {
             public bool MetadataReportReceived { get; set; }
+            public EndpointMetadataReport Report { get; set; }
+            public string LocalAddress { get; set; }
         }
 
         class MonitoredEndpoint : EndpointConfigurationBuilder
@@ -58,8 +66,10 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
                 public void Handle(EndpointMetadataReport message)
                 {
                     context.MetadataReportReceived = true;
+                    context.Report = message;
                 }
             }
         }
     }
-}
+
+    }

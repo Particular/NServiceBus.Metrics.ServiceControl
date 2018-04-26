@@ -94,19 +94,6 @@
             Assert.AreEqual(CustomInstanceId, report.Headers["NServiceBus.Metric.InstanceId"]);
         }
 
-        static bool ContainsPattern(byte[] source, byte[] pattern)
-        {
-            for (var i = 0; i < source.Length - pattern.Length; i++)
-            {
-                if (source.Skip(i).Take(pattern.Length).SequenceEqual(pattern))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         public class Context : ScenarioContext
         {
             public ConcurrentDictionary<string, Report> Reports = new ConcurrentDictionary<string, Report>();

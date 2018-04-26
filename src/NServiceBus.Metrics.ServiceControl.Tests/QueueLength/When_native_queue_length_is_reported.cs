@@ -4,27 +4,36 @@ using NUnit.Framework;
 namespace NServiceBus.Metrics.ServiceControl.Tests
 {
     using System;
+    using System.Linq;
+    using System.Text;
     using EndpointTemplates;
     using Features;
     using Pipeline;
     using Pipeline.Contexts;
     using Conventions = AcceptanceTesting.Customization.Conventions;
 
-    public class When_native_queue_length_is_reproted : NServiceBusAcceptanceTest
+    public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
     {
+        static string queueName = "queue";
+        static readonly byte[] QueueNameBytes = new UTF8Encoding(false).GetBytes(queueName);
+
         [Test]
         public void Should_send_reported_values_to_ServiceControl()
         {
-            Scenario.Define<Context>()
+            var context = Scenario.Define<Context>()
                 .WithEndpoint<EndpointWithNativeQueueLengthSupport>()
                 .WithEndpoint<MonitoringSpy>()
-                .Done(c => c.QueueLengthReportReceived)
+                .Done(c => c.ReportReceived)
                 .Run();
+
+            Assert.IsTrue(ContainsPattern(context.ReportBody, QueueNameBytes));
+            Assert.IsTrue(ContainsPattern(context.ReportBody, new [] { (byte)10 }));
         }
 
         class Context : ScenarioContext
         {
-            public bool QueueLengthReportReceived { get; set; }
+            public bool ReportReceived { get; set; }
+            public byte[] ReportBody { get; set; }
         }
 
         class EndpointWithNativeQueueLengthSupport : EndpointConfigurationBuilder
@@ -59,7 +68,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
 
                 protected override void OnStart()
                 {
-                    queueLengthReporter.ReportQueueLength("queue", 10);
+                    queueLengthReporter.ReportQueueLength(queueName, 10);
                 }
             }
         }
@@ -89,7 +98,8 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
 
                     if (msg.Headers.TryGetValue("NServiceBus.Metric.Type", out var metric) && metric == "QueueLength")
                     {
-                        Context.QueueLengthReportReceived = true;
+                        Context.ReportReceived = true;
+                        Context.ReportBody = context.PhysicalMessage.Body.ToArray();
                     }
                 }
             }
