@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using NServiceBus;
 using NServiceBus.AcceptanceTesting;
@@ -13,20 +15,27 @@ using Conventions = NServiceBus.AcceptanceTesting.Customization.Conventions;
 
 public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 {
+    static string queueName = "queue";
+    static readonly byte[] QueueNameBytes = new UTF8Encoding(false).GetBytes(queueName);
+
     [Test]
     public async Task Should_sent_reported_values_to_ServiceControl()
     {
-        await Scenario.Define<Context>()
+        var context = await Scenario.Define<Context>()
             .WithEndpoint<EndpointWithNativeQueueLengthSupport>()
             .WithEndpoint<MonitoringSpy>()
-            .Done(c => c.QueueLengthReportReceived)
+            .Done(c => c.ReportReceived)
             .Run(TimeSpan.FromSeconds(10))
             .ConfigureAwait(false);
+
+        Assert.IsTrue(ContainsPattern(context.ReportBody, QueueNameBytes));
+        Assert.IsTrue(ContainsPattern(context.ReportBody, new []{ (byte)10 }));
     }
  
     class Context : ScenarioContext
     {
-        public bool QueueLengthReportReceived { get; set; }
+        public bool ReportReceived { get; set; }
+        public byte[] ReportBody { get; set; }
     }
 
     class EndpointWithNativeQueueLengthSupport : EndpointConfigurationBuilder
@@ -66,7 +75,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 
             protected override Task OnStart(IMessageSession session)
             {
-                queueLengthReporter.ReportQueueLength("queue", 10);
+                queueLengthReporter.ReportQueueLength(queueName, 10);
 
                 return Task.FromResult(0);
             }
@@ -99,7 +108,8 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
             {
                 if (context.MessageHeaders.TryGetValue("NServiceBus.Metric.Type", out var metricType) && metricType == "QueueLength")
                 {
-                    TestContext.QueueLengthReportReceived = true;
+                    TestContext.ReportReceived = true;
+                    TestContext.ReportBody = context.Message.Body.ToArray();
                 }
 
                 return Task.FromResult(0);

@@ -4,6 +4,6 @@
     {
         public string LocalAddress { get; set; }
 
-        public int Version { get; set; }
+        public int PluginVersion { get; set; }
     }
 }
