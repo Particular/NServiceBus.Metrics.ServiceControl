@@ -5,7 +5,6 @@
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using AcceptanceTesting.Customization;
-    using global::Newtonsoft.Json.Linq;
     using NServiceBus.AcceptanceTests;
     using NServiceBus.AcceptanceTests.EndpointTemplates;
     using NUnit.Framework;
@@ -16,7 +15,7 @@
         static Guid HostId = Guid.NewGuid();
 
         [Test]
-        public async Task Should_send_reports_to_configured_queue()
+        public async Task Should_send_metadata_to_configured_queue()
         {
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<Sender>()
@@ -26,18 +25,17 @@
                 .ConfigureAwait(false);
 
             Assert.IsNotNull(context.Report);
+            Assert.AreEqual(3, context.Report.Version);
+            Assert.IsNotEmpty(context.Report.LocalAddress);
 
-            var metricsContext = context.Report["Context"].Value<string>();
-            Assert.AreEqual($"{Conventions.EndpointNamingConvention(typeof(Sender))}", metricsContext);
-            Assert.AreEqual(metricsContext, context.Headers[Headers.OriginatingEndpoint]);
             Assert.AreEqual(HostId.ToString("N"), context.Headers[Headers.OriginatingHostId]);
-            Assert.AreEqual("NServiceBus.Metrics.MetricReport", context.Headers[Headers.EnclosedMessageTypes]);
+            Assert.AreEqual("NServiceBus.Metrics.EndpointMetadataReport", context.Headers[Headers.EnclosedMessageTypes]);
             Assert.AreEqual(ContentTypes.Json, context.Headers[Headers.ContentType]);
         }
 
         class Context : ScenarioContext
         {
-            public JObject Report { get; set; }
+            public EndpointMetadataReport Report { get; set; }
 
             public IReadOnlyDictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
         }
@@ -62,16 +60,16 @@
                 {
                     c.UseSerialization<NewtonsoftSerializer>();
                     c.LimitMessageProcessingConcurrencyTo(1);
-                }).IncludeType<MetricReport>();
+                }).IncludeType<EndpointMetadataReport>();
             }
 
-            public class MetricHandler : IHandleMessages<MetricReport>
+            public class MetricHandler : IHandleMessages<EndpointMetadataReport>
             {
                 public Context TestContext { get; set; }
 
-                public Task Handle(MetricReport message, IMessageHandlerContext context)
+                public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
-                    TestContext.Report = message.Data;
+                    TestContext.Report = message;
                     TestContext.Headers = context.MessageHeaders;
 
                     return Task.FromResult(0);
