@@ -20,7 +20,7 @@ namespace NServiceBus.Metrics.ServiceControl.Tests
 
             var localAddress = $"{Conventions.EndpointNamingConvention(typeof(MonitoredEndpoint))}@{Environment.MachineName}";
             
-            Assert.AreEqual(1, context.Report.Version);
+            Assert.AreEqual(1, context.Report.PluginVersion);
             Assert.AreEqual(localAddress, context.Report.LocalAddress);
         }
 

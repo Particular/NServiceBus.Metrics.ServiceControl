@@ -2,7 +2,7 @@
 {
     public class EndpointMetadataReport : IMessage
     {
-        public int Version { get; set; }
+        public int PluginVersion { get; set; }
         public string LocalAddress { get; set; }
     }
 
