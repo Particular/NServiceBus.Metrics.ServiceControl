@@ -31,11 +31,12 @@
         {
             var buffers = new Buffers();
             var settings = context.Settings;
+            var localAddress = settings.LocalAddress();
 
             var options = settings.Get<ReportingOptions>();
             var container = context.Container;
 
-            container.ConfigureComponent<IReportNativeQueueLength>(() => new QueueLengthBufferReporter(buffers), DependencyLifecycle.SingleInstance);
+            container.ConfigureComponent<IReportNativeQueueLength>(() => new QueueLengthBufferReporter(buffers, localAddress.ToString()), DependencyLifecycle.SingleInstance);
             container.ConfigureComponent(() => options, DependencyLifecycle.SingleInstance);
             container.ConfigureComponent(builder =>
             {
@@ -78,7 +79,7 @@
                 headers.Add(MetricHeaders.MetricInstanceId, instanceId);
             }
 
-            var metricsReportData = new EndpointMetadata(settings.LocalAddress().ToString());
+            var metricsReportData = new EndpointMetadata(localAddress.ToString());
 
             container.ConfigureComponent(() => metricsReportData, DependencyLifecycle.SingleInstance);
 
