@@ -126,6 +126,6 @@
 
         public string ContentType { get; } = "TaggedLongValueWriterOccurrence";
 
-        private static UTF8Encoding TagDecoder = new UTF8Encoding(false);
+        static UTF8Encoding TagDecoder = new UTF8Encoding(false);
     }
 }
