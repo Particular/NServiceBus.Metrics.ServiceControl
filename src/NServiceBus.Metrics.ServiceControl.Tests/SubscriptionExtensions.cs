@@ -7,20 +7,6 @@
     using Pipeline.Contexts;
     using Unicast.Subscriptions;
 
-    static class SubscriptionBehaviorExtensions
-    {
-        public static void OnEndpointSubscribed<TContext>(this BusConfiguration b, Action<SubscriptionEventArgs, TContext> action) where TContext : ScenarioContext
-        {
-            b.Pipeline.Register<SubscriptionBehavior<TContext>.Registration>();
-
-            b.RegisterComponents(c => c.ConfigureComponent(builder =>
-            {
-                var context = builder.Build<TContext>();
-                return new SubscriptionBehavior<TContext>(action, context);
-            }, DependencyLifecycle.InstancePerCall));
-        }
-    }
-
     class SubscriptionBehavior<TContext> : IBehavior<IncomingContext> where TContext : ScenarioContext
     {
         readonly Action<SubscriptionEventArgs, TContext> action;

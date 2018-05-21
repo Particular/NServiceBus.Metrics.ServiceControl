@@ -7,20 +7,20 @@
     using Transports;
     using Unicast;
 
-    class NServiceBusMetricReport
+    class EndpointMetadataReport
     {
-        public NServiceBusMetricReport(ISendMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, MetricsContext metricsContext)
+        public EndpointMetadataReport(ISendMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
         {
             this.dispatcher = dispatcher;
             this.headers = headers;
-            this.metricsContext = metricsContext;
+            this.endpointMetadata = endpointMetadata;
             destination = options.ServiceControlMetricsAddress;
             ttbr = options.TimeToBeReceived;
         }
 
         public void RunReport()
         {
-            var stringBody = $@"{{""Data"" : {metricsContext.ToJson()}}}";
+            var stringBody = endpointMetadata.ToJson();
             var body = Encoding.UTF8.GetBytes(stringBody);
 
             try
@@ -43,11 +43,11 @@
             }
         }
 
-        readonly MetricsContext metricsContext;
+        readonly EndpointMetadata endpointMetadata;
         readonly string destination;
         readonly ISendMessages dispatcher;
         readonly Dictionary<string, string> headers;
         readonly TimeSpan ttbr;
-        static ILog log = LogManager.GetLogger<NServiceBusMetricReport>();
+        static ILog log = LogManager.GetLogger<EndpointMetadataReport>();
     }
 }

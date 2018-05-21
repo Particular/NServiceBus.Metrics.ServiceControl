@@ -31,10 +31,12 @@
         {
             var buffers = new Buffers();
             var settings = context.Settings;
+            var localAddress = settings.LocalAddress();
 
             var options = settings.Get<ReportingOptions>();
             var container = context.Container;
 
+            container.ConfigureComponent<IReportNativeQueueLength>(() => new QueueLengthBufferReporter(buffers, localAddress.ToString()), DependencyLifecycle.SingleInstance);
             container.ConfigureComponent(() => options, DependencyLifecycle.SingleInstance);
             container.ConfigureComponent(builder =>
             {
@@ -54,9 +56,7 @@
             }, DependencyLifecycle.SingleInstance);
 
             var endpointName = settings.EndpointName();
-            var metricsContext = new MetricsContext(endpointName);
-            container.ConfigureComponent(() => metricsContext, DependencyLifecycle.SingleInstance);
-            QueueLengthTracker.SetUp(metricsContext, context);
+            
 
             context.Pipeline.Register<ServiceControlMonitoringRegistration>();
 
@@ -79,11 +79,15 @@
                 headers.Add(MetricHeaders.MetricInstanceId, instanceId);
             }
 
-            container.ConfigureComponent<ServiceControlReporting>(DependencyLifecycle.SingleInstance)
+            var metricsReportData = new EndpointMetadata(localAddress.ToString());
+
+            container.ConfigureComponent(() => metricsReportData, DependencyLifecycle.SingleInstance);
+
+            container.ConfigureComponent<EndpointMetadataReporting>(DependencyLifecycle.SingleInstance)
                 .ConfigureProperty(task => task.HeaderValues, headers);
 
             RegisterStartupTask<ReportingStartupTask>();
-            RegisterStartupTask<ServiceControlReporting>();
+            RegisterStartupTask<EndpointMetadataReporting>();
         }
 
         class ServiceControlMonitoringRegistrationBehavior : IBehavior<IncomingContext>
@@ -150,27 +154,27 @@
             }
         }
 
-        class ServiceControlReporting : FeatureStartupTask
+        class EndpointMetadataReporting : FeatureStartupTask
         {
-            public ServiceControlReporting(MetricsContext metricsContext, ISendMessages dispatcher, ReportingOptions options)
+            public EndpointMetadataReporting(EndpointMetadata endpointMetadata, ISendMessages dispatcher, ReportingOptions options)
             {
-                this.metricsContext = metricsContext;
+                this.endpointMetadata = endpointMetadata;
                 this.dispatcher = dispatcher;
                 this.options = options;
             }
 
             protected override void OnStart()
             {
-                HeaderValues.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.MetricReport");
+                HeaderValues.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.EndpointMetadataReport");
                 HeaderValues.Add(Headers.ContentType, ContentTypes.Json);
 
-                var serviceControlReport = new NServiceBusMetricReport(dispatcher, options, HeaderValues, metricsContext);
+                var nativeQueueLengthReport = new EndpointMetadataReport(dispatcher, options, HeaderValues, endpointMetadata);
 
                 task = Task.Run(async () =>
                 {
                     while (cancellationTokenSource.IsCancellationRequested == false)
                     {
-                        serviceControlReport.RunReport();
+                        nativeQueueLengthReport.RunReport();
                         await Task.Delay(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
                     }
                 });
@@ -183,7 +187,7 @@
             }
 
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            readonly MetricsContext metricsContext;
+            readonly EndpointMetadata endpointMetadata;
             readonly ISendMessages dispatcher;
             readonly ReportingOptions options;
             public Dictionary<string, string> HeaderValues { get; set; }
@@ -231,6 +235,7 @@
                     BuildReporter("ProcessingTime", buffers.ProcessingTime),
                     BuildReporter("CriticalTime", buffers.CriticalTime),
                     BuildReporter("Retries", buffers.Retries),
+                    BuildReporter("QueueLength", buffers.QueueLength)
                 };
             }
 
