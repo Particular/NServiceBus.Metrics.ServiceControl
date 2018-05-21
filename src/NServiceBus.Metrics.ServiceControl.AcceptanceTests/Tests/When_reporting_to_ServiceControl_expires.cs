@@ -82,14 +82,14 @@
                 {
                     c.UseSerialization<NewtonsoftSerializer>();
                     c.LimitMessageProcessingConcurrencyTo(1);
-                }).IncludeType<MetricReport>();
+                }).IncludeType<EndpointMetadataReport>();
             }
 
-            public class MetricHandler : IHandleMessages<MetricReport>
+            public class MetricHandler : IHandleMessages<EndpointMetadataReport>
             {
                 public Context Context { get; set; }
 
-                public Task Handle(MetricReport message, IMessageHandlerContext context)
+                public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
                     Context.WasCalled = true;
                     

@@ -22,15 +22,6 @@ namespace NServiceBus.Metrics.AcceptanceTests
             public string MessageType { get; set; }
         }
 
-        public static void OnEndpointSubscribed<TContext>(this EndpointConfiguration b, Action<SubscriptionEventArgs, TContext> action) where TContext : ScenarioContext
-        {
-            b.Pipeline.Register(builder =>
-            {
-                var context = builder.Build<TContext>();
-                return new SubscriptionBehavior<TContext>(action, context);
-            }, "Provides notifications when endpoints subscribe");
-        }
-
         class SubscriptionBehavior<TContext> : IBehavior<ITransportReceiveContext, ITransportReceiveContext> where TContext : ScenarioContext
         {
             Action<SubscriptionEventArgs, TContext> action;
