@@ -72,5 +72,10 @@ namespace NServiceBus.AcceptanceTests
                 return Path.Combine(tempDir, "nsb.metrics-att");
             }
         }
+
+        protected static bool ContainsPattern(byte[] source, byte[] pattern)
+        {
+            return Enumerable.Range(0, source.Length - 1).Any(i => source.Skip(i).Take(pattern.Length).SequenceEqual(pattern));
+        }
     }
 }
