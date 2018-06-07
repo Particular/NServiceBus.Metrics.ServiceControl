@@ -13,7 +13,7 @@
         {
             return SimpleJson.SerializeObject(new
             {
-                Version = 3,
+                PluginVersion = 3,
                 LocalAddress = localAddress
             });
         }
