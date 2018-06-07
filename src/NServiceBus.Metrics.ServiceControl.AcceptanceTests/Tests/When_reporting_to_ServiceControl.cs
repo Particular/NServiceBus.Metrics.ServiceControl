@@ -25,7 +25,7 @@
                 .ConfigureAwait(false);
 
             Assert.IsNotNull(context.Report);
-            Assert.AreEqual(3, context.Report.Version);
+            Assert.AreEqual(3, context.Report.PluginVersion);
             Assert.IsNotEmpty(context.Report.LocalAddress);
 
             Assert.AreEqual(HostId.ToString("N"), context.Headers[Headers.OriginatingHostId]);
