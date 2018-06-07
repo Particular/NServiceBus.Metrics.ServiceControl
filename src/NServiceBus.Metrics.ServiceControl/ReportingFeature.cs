@@ -16,7 +16,9 @@ using ServiceControl.Monitoring.Data;
 
 namespace NServiceBus.Metrics.ServiceControl
 {
+    using DeliveryConstraints;
     using MessageMutator;
+    using Performance.TimeToBeReceived;
 
     class ReportingFeature : Feature
     {
@@ -92,15 +94,30 @@ namespace NServiceBus.Metrics.ServiceControl
                 }
             });
 
+            var queueLengthMetric = SetupQueueLengthReporting(context);
+
+            metrics.Add("QueueLength", queueLengthMetric);
+
             var reportingOptions = ReportingOptions.Get(options);
 
             SetUpServiceControlReporting(context, reportingOptions, endpointName, metrics);
         }
 
+        static Tuple<RingBuffer, TaggedLongValueWriterV1> SetupQueueLengthReporting(FeatureConfigurationContext context)
+        {
+            var queueLengthBuffer = new RingBuffer();
+            var queueLengthWriter = new TaggedLongValueWriterV1();
+            var localAddress = context.Settings.LocalAddress();
+            var queueLengthReporter = new QueueLengthBufferReporter(queueLengthBuffer, queueLengthWriter, localAddress);
+
+            context.Container.RegisterSingleton<IReportNativeQueueLength>(queueLengthReporter);
+
+            return Tuple.Create(queueLengthBuffer, queueLengthWriter);
+        }
+
         void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
         {
-            var metricsContext = new MetricsContext(endpointName);
-            SetUpQueueLengthReporting(context, metricsContext);
+            var endpointMetadata = new EndpointMetadata(context.Settings.LocalAddress());
 
             Dictionary<string, string> BuildBaseHeaders(IBuilder b)
             {
@@ -126,7 +143,7 @@ namespace NServiceBus.Metrics.ServiceControl
             {
                 var headers = BuildBaseHeaders(builder);
 
-                return new ServiceControlReporting(metricsContext, builder, options, headers);
+                return new ServiceControlMetadataReporting(endpointMetadata, builder, options, headers);
             });
 
             context.RegisterStartupTask(builder =>
@@ -139,11 +156,6 @@ namespace NServiceBus.Metrics.ServiceControl
             SetUpOutgoingMessageMutator(context, options);
         }
 
-        static void SetUpQueueLengthReporting(FeatureConfigurationContext context, MetricsContext metricsContext)
-        {
-            QueueLengthTracker.SetUp(metricsContext, context);
-        }
-
         void SetUpOutgoingMessageMutator(FeatureConfigurationContext context, ReportingOptions options)
         {
             if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
@@ -152,22 +164,22 @@ namespace NServiceBus.Metrics.ServiceControl
             }
         }
 
-        class ServiceControlReporting : FeatureStartupTask
+        class ServiceControlMetadataReporting : FeatureStartupTask
         {
-            public ServiceControlReporting(MetricsContext metricsContext, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
+            public ServiceControlMetadataReporting(EndpointMetadata endpointMetadata, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
             {
-                this.metricsContext = metricsContext;
+                this.endpointMetadata = endpointMetadata;
                 this.builder = builder;
                 this.options = options;
                 this.headers = headers;
 
-                headers.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.MetricReport");
+                headers.Add(Headers.EnclosedMessageTypes, "NServiceBus.Metrics.EndpointMetadataReport");
                 headers.Add(Headers.ContentType, ContentTypes.Json);
             }
 
             protected override Task OnStart(IMessageSession session)
             {
-                var serviceControlReport = new NServiceBusMetricReport(builder.Build<IDispatchMessages>(), options, headers, metricsContext);
+                var serviceControlReport = new NServiceBusMetadataReport(builder.Build<IDispatchMessages>(), options, headers, endpointMetadata);
 
                 task = Task.Run(async () =>
                 {
@@ -188,7 +200,7 @@ namespace NServiceBus.Metrics.ServiceControl
             }
 
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            readonly MetricsContext metricsContext;
+            readonly EndpointMetadata endpointMetadata;
             readonly IBuilder builder;
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;
@@ -238,8 +250,11 @@ namespace NServiceBus.Metrics.ServiceControl
                 async Task Sender(byte[] body)
                 {
                     var message = new OutgoingMessage(Guid.NewGuid().ToString(), reporterHeaders, body);
-
-                    var operation = new TransportOperation(message, address);
+                    var constraints = new List<DeliveryConstraint>
+                    {
+                        new DiscardIfNotReceivedBefore(options.TimeToBeReceived)
+                    };
+                    var operation = new TransportOperation(message, address, DispatchConsistency.Default, constraints);
                     try
                     {
                         await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), new ContextBag())
