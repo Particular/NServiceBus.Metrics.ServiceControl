@@ -1,6 +1,5 @@
-using System;
+﻿using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using NServiceBus;
 using NServiceBus.AcceptanceTesting;
@@ -9,33 +8,33 @@ using NServiceBus.AcceptanceTests.EndpointTemplates;
 using NServiceBus.Features;
 using NServiceBus.Metrics;
 using NServiceBus.Metrics.ServiceControl;
-using NServiceBus.Pipeline;
 using NUnit.Framework;
+using ServiceControl.Monitoring.Messaging;
 using Conventions = NServiceBus.AcceptanceTesting.Customization.Conventions;
 
 public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 {
-    static string queueName = "queue";
-    static readonly byte[] QueueNameBytes = new UTF8Encoding(false).GetBytes(queueName);
-
     [Test]
     public async Task Should_sent_reported_values_to_ServiceControl()
     {
-        var context = await Scenario.Define<Context>()
+        var result = await Scenario.Define<Context>()
             .WithEndpoint<EndpointWithNativeQueueLengthSupport>()
             .WithEndpoint<MonitoringSpy>()
-            .Done(c => c.ReportReceived)
+            .Done(c => c.QueueLengthReportReceived)
             .Run(TimeSpan.FromSeconds(10))
             .ConfigureAwait(false);
 
-        Assert.IsTrue(ContainsPattern(context.ReportBody, QueueNameBytes));
-        Assert.IsTrue(ContainsPattern(context.ReportBody, new []{ (byte)10 }));
+        Assert.IsNotNull(result.Message);
+        Assert.AreEqual("queue", result.Message.TagValue);
+        var entries = result.Message.Entries.Where(x => x.DateTicks > 0).ToArray();
+        Assert.Greater(entries.Length, 0, "There should be some reported values");
+        Assert.AreEqual(1, entries.Count(x => x.Value == 10), "A reported value should be 10");
     }
- 
+
     class Context : ScenarioContext
     {
-        public bool ReportReceived { get; set; }
-        public byte[] ReportBody { get; set; }
+        public bool QueueLengthReportReceived { get; set; }
+        public TaggedLongValueOccurrence Message { get; set; }
     }
 
     class EndpointWithNativeQueueLengthSupport : EndpointConfigurationBuilder
@@ -75,7 +74,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 
             protected override Task OnStart(IMessageSession session)
             {
-                queueLengthReporter.ReportQueueLength(queueName, 10);
+                queueLengthReporter.ReportQueueLength("queue", 10);
 
                 return Task.FromResult(0);
             }
@@ -94,24 +93,29 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
         {
             EndpointSetup<DefaultServer>(c =>
             {
-                c.Pipeline.Register(typeof(RawMessageBehavior), "Transport message handler.");
                 c.UseSerialization<NewtonsoftSerializer>();
+                c.AddDeserializer<TaggedLongValueWriterOccurrenceSerializerDefinition>();
                 c.LimitMessageProcessingConcurrencyTo(1);
-            }).IncludeType<EndpointMetadataReport>();
+            }).IncludeType<EndpointMetadataReport>().IncludeType<TaggedLongValueOccurrence>();
         }
 
-        public class RawMessageBehavior : Behavior<IIncomingPhysicalMessageContext>
+        class MessageHandler : IHandleMessages<TaggedLongValueOccurrence>, IHandleMessages<EndpointMetadataReport>
         {
             public Context TestContext { get; set; }
 
-            public override Task Invoke(IIncomingPhysicalMessageContext context, Func<Task> next)
+            public Task Handle(TaggedLongValueOccurrence message, IMessageHandlerContext context)
             {
                 if (context.MessageHeaders.TryGetValue("NServiceBus.Metric.Type", out var metricType) && metricType == "QueueLength")
                 {
-                    TestContext.ReportReceived = true;
-                    TestContext.ReportBody = context.Message.Body.ToArray();
+                    TestContext.Message = message;
+                    TestContext.QueueLengthReportReceived = true;
                 }
 
+                return Task.FromResult(0);
+            }
+
+            public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
+            {
                 return Task.FromResult(0);
             }
         }

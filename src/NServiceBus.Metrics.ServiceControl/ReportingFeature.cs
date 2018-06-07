@@ -94,7 +94,7 @@ namespace NServiceBus.Metrics.ServiceControl
                 }
             });
 
-            var queueLengthMetric = SetupQueueLengthMetric(context);
+            var queueLengthMetric = SetupQueueLengthReporting(context);
 
             metrics.Add("QueueLength", queueLengthMetric);
 
@@ -103,7 +103,7 @@ namespace NServiceBus.Metrics.ServiceControl
             SetUpServiceControlReporting(context, reportingOptions, endpointName, metrics);
         }
 
-        static Tuple<RingBuffer, TaggedLongValueWriterV1> SetupQueueLengthMetric(FeatureConfigurationContext context)
+        static Tuple<RingBuffer, TaggedLongValueWriterV1> SetupQueueLengthReporting(FeatureConfigurationContext context)
         {
             var queueLengthBuffer = new RingBuffer();
             var queueLengthWriter = new TaggedLongValueWriterV1();
@@ -112,12 +112,12 @@ namespace NServiceBus.Metrics.ServiceControl
 
             context.Container.RegisterSingleton<IReportNativeQueueLength>(queueLengthReporter);
 
-            return new Tuple<RingBuffer, TaggedLongValueWriterV1>(queueLengthBuffer, queueLengthWriter);
+            return Tuple.Create(queueLengthBuffer, queueLengthWriter);
         }
 
         void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
         {
-            var metricsContext = new EndpointMetadata(context.Settings.LocalAddress());
+            var endpointMetadata = new EndpointMetadata(context.Settings.LocalAddress());
 
             Dictionary<string, string> BuildBaseHeaders(IBuilder b)
             {
@@ -143,7 +143,7 @@ namespace NServiceBus.Metrics.ServiceControl
             {
                 var headers = BuildBaseHeaders(builder);
 
-                return new ServiceControlReporting(metricsContext, builder, options, headers);
+                return new ServiceControlMetadataReporting(endpointMetadata, builder, options, headers);
             });
 
             context.RegisterStartupTask(builder =>
@@ -164,9 +164,9 @@ namespace NServiceBus.Metrics.ServiceControl
             }
         }
 
-        class ServiceControlReporting : FeatureStartupTask
+        class ServiceControlMetadataReporting : FeatureStartupTask
         {
-            public ServiceControlReporting(EndpointMetadata endpointMetadata, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
+            public ServiceControlMetadataReporting(EndpointMetadata endpointMetadata, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
             {
                 this.endpointMetadata = endpointMetadata;
                 this.builder = builder;
@@ -179,7 +179,7 @@ namespace NServiceBus.Metrics.ServiceControl
 
             protected override Task OnStart(IMessageSession session)
             {
-                var serviceControlReport = new EndpointMetadataReport(builder.Build<IDispatchMessages>(), options, headers, endpointMetadata);
+                var serviceControlReport = new NServiceBusMetadataReport(builder.Build<IDispatchMessages>(), options, headers, endpointMetadata);
 
                 task = Task.Run(async () =>
                 {

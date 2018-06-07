@@ -15,7 +15,7 @@
         static Guid HostId = Guid.NewGuid();
 
         [Test]
-        public async Task Should_send_metadata_report_periodically()
+        public async Task Should_send_metadata_to_configured_queue()
         {
             var context = await Scenario.Define<Context>()
                 .WithEndpoint<Sender>()
@@ -25,7 +25,7 @@
                 .ConfigureAwait(false);
 
             Assert.IsNotNull(context.Report);
-            Assert.AreEqual(2, context.Report.PluginVersion);
+            Assert.AreEqual(3, context.Report.Version);
             Assert.IsNotEmpty(context.Report.LocalAddress);
 
             Assert.AreEqual(HostId.ToString("N"), context.Headers[Headers.OriginatingHostId]);

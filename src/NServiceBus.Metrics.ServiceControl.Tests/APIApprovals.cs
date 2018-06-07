@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if NET452
+using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -24,7 +25,7 @@ public class APIApprovals
     static IApprovalWriter BuildWriter(string api,[CallerFilePath] string path = null)
     {
         var directory = Path.GetDirectoryName(path);
-        return new LocalApprovalTextWriter(api, "cs", directory);
+        return new LocalApprovalTextWriter(api, "txt", directory);
     }
 
     string Filter(string text)
@@ -42,7 +43,7 @@ public class APIApprovals
     {
         readonly string directory;
 
-        public LocalApprovalTextWriter(string data, string extensionWithoutDot, string directory) 
+        public LocalApprovalTextWriter(string data, string extensionWithoutDot, string directory)
             : base(data, extensionWithoutDot)
         {
             this.directory = directory;
@@ -52,3 +53,4 @@ public class APIApprovals
         public override string GetReceivedFilename(string basename) => Path.Combine(directory, base.GetReceivedFilename(basename));
     }
 }
+#endif

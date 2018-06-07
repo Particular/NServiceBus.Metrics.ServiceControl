@@ -1,20 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using NServiceBus.Extensibility;
-using NServiceBus.Logging;
-using NServiceBus.Routing;
-using NServiceBus.Transport;
-
-namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
+﻿namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Text;
+    using System.Threading.Tasks;
     using DeliveryConstraints;
+    using Extensibility;
+    using Logging;
     using Performance.TimeToBeReceived;
+    using Routing;
+    using Transport;
 
-    class EndpointMetadataReport
+    class NServiceBusMetadataReport
     {
-        public EndpointMetadataReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
+        public NServiceBusMetadataReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
         {
             this.dispatcher = dispatcher;
             this.headers = headers;
@@ -54,6 +53,6 @@ namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
         readonly EndpointMetadata endpointMetadata;
         readonly TimeSpan timeToBeReceived;
 
-        static ILog log = LogManager.GetLogger<EndpointMetadataReport>();
+        static ILog log = LogManager.GetLogger<NServiceBusMetadataReport>();
     }
 }

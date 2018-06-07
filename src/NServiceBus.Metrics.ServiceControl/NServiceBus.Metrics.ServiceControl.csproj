@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net452</TargetFramework>
+    <TargetFrameworks>net452;netstandard2.0</TargetFrameworks>
     <OutputPath>..\..\binaries\</OutputPath>
-    <DocumentationFile>..\..\binaries\net452\NServiceBus.Metrics.ServiceControl.xml</DocumentationFile>
-    <LangVersion>7</LangVersion>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <DebugType>full</DebugType>
-    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="GitVersionTask" Version="3.6.5" />
-    <PackageReference Include="NServiceBus" Version="[6.4.0,7.0.0)" />
-    <PackageReference Include="NServiceBus.Metrics" Version="[2.0.0-*,3.0.0)" />
-    <PackageReference Include="NuGetPackager" Version="0.6.5" />
-    <PackageReference Include="ServiceControl.Monitoring.Data" Version="2.1.1" />
+    <PackageReference Include="NServiceBus.Metrics" Version="3.0.0" />
+    <PackageReference Include="Particular.Packaging" Version="0.1.0" PrivateAssets="All" />
+    <PackageReference Include="ServiceControl.Monitoring.Data" Version="2.1.1" PrivateAssets="All" />
   </ItemGroup>
- </Project>
+
+  <ItemGroup>
+    <PackageReference Include="SourceLink.Create.GitHub" Version="2.6.0" PrivateAssets="All" />
+    <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.5.0" />
+  </ItemGroup>
+
+</Project>

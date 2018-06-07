@@ -2,6 +2,8 @@
 {
     class EndpointMetadata
     {
+        readonly string localAddress;
+
         public EndpointMetadata(string localAddress)
         {
             this.localAddress = localAddress;
@@ -11,11 +13,9 @@
         {
             return SimpleJson.SerializeObject(new
             {
-                PluginVersion = 2,
+                Version = 3,
                 LocalAddress = localAddress
             });
         }
-
-        readonly string localAddress;
     }
 }
