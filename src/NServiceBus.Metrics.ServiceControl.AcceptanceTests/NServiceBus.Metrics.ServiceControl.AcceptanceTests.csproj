@@ -2,8 +2,6 @@
 
   <PropertyGroup>
     <TargetFrameworks>net452;netcoreapp2.0</TargetFrameworks>
-    <AssemblyOriginatorKeyFile>..\Test.snk</AssemblyOriginatorKeyFile>
-    <SignAssembly>true</SignAssembly>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
