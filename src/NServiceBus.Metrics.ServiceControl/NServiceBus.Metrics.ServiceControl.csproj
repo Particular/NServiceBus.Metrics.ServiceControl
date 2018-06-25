@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net452</TargetFramework>
-    <!--<LangVersion>7</LangVersion>-->
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,9 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net452</TargetFramework>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="NServiceBus.Newtonsoft.Json" Version="1.1.0" />
@@ -13,6 +15,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.3.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.8.0-alpha1" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.Metrics.ServiceControl\NServiceBus.Metrics.ServiceControl.csproj" />
   </ItemGroup>
@@ -20,4 +23,5 @@
   <ItemGroup>
     <Reference Include="System.Messaging" />
   </ItemGroup>
+
 </Project>
