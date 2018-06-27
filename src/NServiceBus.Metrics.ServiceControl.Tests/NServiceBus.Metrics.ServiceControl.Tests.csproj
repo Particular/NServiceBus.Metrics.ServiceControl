@@ -5,28 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="APIApprovals.Approve.approved.cs" />
-    <Compile Remove="APIApprovals.Approve.received.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="NUnit" Version="3.8.1" />
-    <PackageReference Include="ApprovalTests" Version="3.*" />
-    <PackageReference Include="ApprovalUtilities" Version="3.*" />
-    <PackageReference Include="PublicApiGenerator" Version="6.1.0-*" />
+    <PackageReference Include="ApprovalTests" Version="3.0.13" />
+    <PackageReference Include="PublicApiGenerator" Version="7.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\NServiceBus.Metrics.ServiceControl\NServiceBus.Metrics.ServiceControl.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Microsoft.CSharp">
-      <HintPath>..\..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.5\Microsoft.CSharp.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />
-  </ItemGroup>
-</Project>
+  </Project>
