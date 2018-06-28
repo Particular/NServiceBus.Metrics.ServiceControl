@@ -1,4 +1,4 @@
-namespace NServiceBus.Metrics.ServiceControl.Tests.EndpointTemplates
+namespace NServiceBus.Metrics.ServiceControl.AcceptanceTests.EndpointTemplates
 {
     using System;
     using System.Collections.Generic;

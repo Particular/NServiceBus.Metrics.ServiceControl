@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.Metrics.ServiceControl.Tests
+﻿namespace NServiceBus.Metrics.ServiceControl.AcceptanceTests
 {
     using System;
     using System.Threading;
