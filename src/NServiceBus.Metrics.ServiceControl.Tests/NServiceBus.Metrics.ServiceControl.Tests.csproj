@@ -14,6 +14,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="SourceLink.Create.GitHub" Version="2.6.0" PrivateAssets="All" />
+    <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\NServiceBus.Metrics.ServiceControl\NServiceBus.Metrics.ServiceControl.csproj" />
   </ItemGroup>
 
