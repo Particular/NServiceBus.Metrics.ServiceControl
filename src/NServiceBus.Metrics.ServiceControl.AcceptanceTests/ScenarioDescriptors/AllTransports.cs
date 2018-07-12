@@ -25,7 +25,7 @@
                     activeTransports = new List<RunDescriptor>
                     {
                         Transports.Default
-                    }; 
+                    };
                 }
 
                 return activeTransports;
@@ -95,11 +95,13 @@
             {
                 if (assemblies == null)
                 {
-                    var result = new AssemblyScanner().GetScannableAssemblies();
+                    var scanner = new AssemblyScanner();
+                    scanner.ThrowExceptions = false;
+                    var result = scanner.GetScannableAssemblies();
 
                     assemblies = result.Assemblies;
                 }
-                    
+
                 return assemblies;
             }
         }

@@ -51,7 +51,7 @@
                 r.RegisterSingleton(typeof(ScenarioContext), runDescriptor.ScenarioContext);
             });
 
-       
+
             var serializer = settings.GetOrNull("Serializer");
 
             if (serializer != null)
@@ -69,7 +69,10 @@
 
         static IEnumerable<Type> GetTypesScopedByTestClass(EndpointConfiguration endpointConfiguration)
         {
-            var assemblies = new AssemblyScanner().GetScannableAssemblies();
+            var scanner = new AssemblyScanner();
+            scanner.ThrowExceptions = false;
+
+            var assemblies = scanner.GetScannableAssemblies();
 
             var types = assemblies.Assemblies
                 //exclude all test types by default
