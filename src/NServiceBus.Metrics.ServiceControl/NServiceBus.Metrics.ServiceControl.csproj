@@ -4,7 +4,7 @@
     <TargetFramework>net45</TargetFramework>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
-    <Description>Sends monitoring data gathered with NServiceBus.Metrics to an instance of the ServiceControl.Monitoring service.</Description>
+    <Description>Plugin for sending endpoint monitoring data to a ServiceControl Monitoring instance</Description>
   </PropertyGroup>
 
   <ItemGroup>
