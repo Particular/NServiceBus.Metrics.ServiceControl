@@ -80,7 +80,7 @@
             {
                 EndpointSetup<DefaultServer>(c =>
                 {
-                    c.UseSerialization<NewtonsoftSerializer>();
+                    c.UseSerialization<JsonSerializer>();
                     c.LimitMessageProcessingConcurrencyTo(1);
                 }).IncludeType<EndpointMetadataReport>();
             }
@@ -92,7 +92,7 @@
                 public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
                     Context.WasCalled = true;
-                    
+
                     return Task.FromResult(0);
                 }
             }

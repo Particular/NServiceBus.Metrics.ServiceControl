@@ -31,7 +31,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
         Assert.IsTrue(ContainsPattern(context.ReportBody, QueueNameBytes));
         Assert.IsTrue(ContainsPattern(context.ReportBody, new []{ (byte)10 }));
     }
- 
+
     class Context : ScenarioContext
     {
         public bool ReportReceived { get; set; }
@@ -95,7 +95,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
             EndpointSetup<DefaultServer>(c =>
             {
                 c.Pipeline.Register(typeof(RawMessageBehavior), "Transport message handler.");
-                c.UseSerialization<NewtonsoftSerializer>();
+                c.UseSerialization<JsonSerializer>();
                 c.LimitMessageProcessingConcurrencyTo(1);
             }).IncludeType<EndpointMetadataReport>();
         }
