@@ -1,30 +1,16 @@
-﻿using System.Runtime.CompilerServices;
-using NServiceBus;
-using NServiceBus.Metrics.ServiceControl.Tests;
+﻿using NServiceBus;
 using NUnit.Framework;
+using Particular.Approvals;
 using PublicApiGenerator;
 
 [TestFixture]
 public class APIApprovals
 {
-#if NET452
-        [Test]
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        public void ApproveNServiceBus__NET452()
-        {
-        var publicApi = ApiGenerator.GeneratePublicApi(typeof(MetricsOptionsExtensions).Assembly);
-        TestApprover.Verify(publicApi);
-        }
-#endif
-
-#if NETCOREAPP2_0
     [Test]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public void ApproveNServiceBus__NETSTANDARD2_0()
+    public void Approve()
     {
-        var publicApi = ApiGenerator.GeneratePublicApi(typeof(MetricsOptionsExtensions).Assembly);
-        TestApprover.Verify(publicApi);
+        var publicApi = ApiGenerator.GeneratePublicApi(typeof(MetricsOptionsExtensions).Assembly, excludeAttributes: new[] { "System.Runtime.Versioning.TargetFrameworkAttribute" });
+        Approver.Verify(publicApi);
     }
-#endif
 }
 

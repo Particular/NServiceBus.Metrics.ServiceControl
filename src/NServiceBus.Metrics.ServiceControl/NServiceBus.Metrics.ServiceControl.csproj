@@ -2,11 +2,13 @@
 
   <PropertyGroup>
     <TargetFrameworks>net452;netstandard2.0</TargetFrameworks>
-    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\NServiceBus.snk</AssemblyOriginatorKeyFile>
+    <Description>Plugin for sending endpoint monitoring data to a ServiceControl Monitoring instance</Description>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="NServiceBus" Version="[7.0.1, 8.0.0)" />
     <PackageReference Include="NServiceBus.Metrics" Version="[3.0.0, 4.0.0)" />
     <PackageReference Include="Particular.Packaging" Version="0.1.0" PrivateAssets="All" />
     <PackageReference Include="ServiceControl.Monitoring.Data" Version="2.1.1" PrivateAssets="All" />
@@ -14,7 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="SourceLink.Create.GitHub" Version="2.6.0" PrivateAssets="All" />
-    <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.5.0" />
+    <DotNetCliToolReference Include="dotnet-sourcelink-git" Version="2.6.0" />
   </ItemGroup>
 
 </Project>
