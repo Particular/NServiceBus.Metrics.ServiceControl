@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.Metrics.ServiceControl
+namespace NServiceBus.Metrics.ServiceControl
 {
     public interface IReportNativeQueueLength
     {
