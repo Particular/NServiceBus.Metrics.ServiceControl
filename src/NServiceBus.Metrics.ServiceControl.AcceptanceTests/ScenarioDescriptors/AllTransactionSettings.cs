@@ -1,4 +1,4 @@
-﻿namespace NServiceBus.Metrics.ServiceControl.Tests.ScenarioDescriptors
+﻿namespace NServiceBus.Metrics.ServiceControl.AcceptanceTests.ScenarioDescriptors
 {
     using AcceptanceTesting.Support;
 
