@@ -12,6 +12,7 @@ namespace NServiceBus.Metrics.AcceptanceTests
     public class When_stopping_endpoint_with_reporting_enabled : NServiceBusAcceptanceTest
     {
         static string MonitoringSpyAddress => Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
+        static TimeSpan SendInterval = TimeSpan.FromSeconds(30);
 
         [Test]
         public async Task Should_not_delay_endpoint_stop()
@@ -27,7 +28,7 @@ namespace NServiceBus.Metrics.AcceptanceTests
             
             stopWatch.Stop();
             
-            Assert.That(stopWatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(15)));
+            Assert.That(stopWatch.Elapsed, Is.LessThan(SendInterval));
         }
         
         class Sender : EndpointConfigurationBuilder
@@ -36,7 +37,7 @@ namespace NServiceBus.Metrics.AcceptanceTests
             {
                 EndpointSetup<DefaultServer>(c =>
                 {
-                    c.EnableMetrics().SendMetricDataToServiceControl(MonitoringSpyAddress, TimeSpan.FromSeconds(30));
+                    c.EnableMetrics().SendMetricDataToServiceControl(MonitoringSpyAddress, SendInterval);
                 });
             }
         }
