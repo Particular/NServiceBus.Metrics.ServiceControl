@@ -186,7 +186,16 @@ namespace NServiceBus.Metrics.ServiceControl
                     while (cancellationTokenSource.IsCancellationRequested == false)
                     {
                         await serviceControlReport.RunReportAsync().ConfigureAwait(false);
-                        await Task.Delay(options.ServiceControlReportingInterval).ConfigureAwait(false);
+
+                        try
+                        {
+                            await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // shutdown
+                            return;
+                        }
                     }
                 });
 
