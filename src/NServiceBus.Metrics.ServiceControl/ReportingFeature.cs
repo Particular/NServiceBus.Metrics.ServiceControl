@@ -232,15 +232,18 @@ namespace NServiceBus.Metrics.ServiceControl
 
             protected override Task OnStart(IMessageSession session)
             {
-                foreach (var metric in metrics)
+                options.OnCreateReporters(() =>
                 {
-                    reporters.Add(CreateReporter(metric.Key, metric.Value.Item1, metric.Value.Item2));
-                }
+                    foreach (var metric in metrics)
+                    {
+                        reporters.Add(CreateReporter(metric.Key, metric.Value.Item1, metric.Value.Item2));
+                    }
 
-                foreach (var reporter in reporters)
-                {
-                    reporter.Start();
-                }
+                    foreach (var reporter in reporters)
+                    {
+                        reporter.Start();
+                    }
+                });                
 
                 return Task.FromResult(0);
             }
