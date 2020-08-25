@@ -102,14 +102,19 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 
         class MessageHandler : IHandleMessages<TaggedLongValueOccurrence>, IHandleMessages<EndpointMetadataReport>
         {
-            public Context TestContext { get; set; }
+            Context testContext;
+
+            public MessageHandler(Context context)
+            {
+                testContext = context;
+            }
 
             public Task Handle(TaggedLongValueOccurrence message, IMessageHandlerContext context)
             {
                 if (context.MessageHeaders.TryGetValue("NServiceBus.Metric.Type", out var metricType) && metricType == "QueueLength")
                 {
-                    TestContext.Message = message;
-                    TestContext.QueueLengthReportReceived = true;
+                    testContext.Message = message;
+                    testContext.QueueLengthReportReceived = true;
                 }
 
                 return Task.FromResult(0);

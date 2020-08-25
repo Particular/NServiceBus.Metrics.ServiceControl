@@ -64,12 +64,17 @@
 
             public class MyMessageHandler : IHandleMessages<MyMessage>
             {
-                public Context Context { get; set; }
+                Context testContext;
+
+                public MyMessageHandler(Context context)
+                {
+                    testContext = context;
+                }
 
                 public async Task Handle(MyMessage message, IMessageHandlerContext context)
                 {
                     await Task.Delay(100);
-                    Context.MessageProcessedBySender = true;
+                    testContext.MessageProcessedBySender = true;
                 }
             }
         }
@@ -87,11 +92,16 @@
 
             public class MetricHandler : IHandleMessages<EndpointMetadataReport>
             {
-                public Context Context { get; set; }
+                Context testContext;
+
+                public MetricHandler(Context context)
+                {
+                    testContext = context;
+                }
 
                 public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
-                    Context.WasCalled = true;
+                    testContext.WasCalled = true;
                     
                     return Task.FromResult(0);
                 }
