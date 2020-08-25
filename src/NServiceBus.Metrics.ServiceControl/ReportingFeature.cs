@@ -8,7 +8,6 @@ using NServiceBus.Features;
 using NServiceBus.Hosting;
 using NServiceBus.Logging;
 using NServiceBus.Metrics.ServiceControl.ServiceControlReporting;
-using NServiceBus.ObjectBuilder;
 using NServiceBus.Routing;
 using NServiceBus.Support;
 using NServiceBus.Transport;
