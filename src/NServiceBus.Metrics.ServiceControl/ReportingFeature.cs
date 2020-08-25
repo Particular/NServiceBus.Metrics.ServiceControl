@@ -8,7 +8,6 @@ using NServiceBus.Features;
 using NServiceBus.Hosting;
 using NServiceBus.Logging;
 using NServiceBus.Metrics.ServiceControl.ServiceControlReporting;
-using NServiceBus.ObjectBuilder;
 using NServiceBus.Routing;
 using NServiceBus.Support;
 using NServiceBus.Transport;
@@ -18,6 +17,7 @@ namespace NServiceBus.Metrics.ServiceControl
 {
     using DeliveryConstraints;
     using MessageMutator;
+    using Microsoft.Extensions.DependencyInjection;
     using Performance.TimeToBeReceived;
 
     class ReportingFeature : Feature
@@ -119,9 +119,9 @@ namespace NServiceBus.Metrics.ServiceControl
         {
             var endpointMetadata = new EndpointMetadata(context.Settings.LocalAddress());
 
-            Dictionary<string, string> BuildBaseHeaders(IBuilder b)
+            Dictionary<string, string> BuildBaseHeaders(IServiceProvider b)
             {
-                var hostInformation = b.Build<HostInformation>();
+                var hostInformation = b.GetRequiredService<HostInformation>();
 
                 var headers = new Dictionary<string, string>
                 {
@@ -166,7 +166,7 @@ namespace NServiceBus.Metrics.ServiceControl
 
         class ServiceControlMetadataReporting : FeatureStartupTask
         {
-            public ServiceControlMetadataReporting(EndpointMetadata endpointMetadata, IBuilder builder, ReportingOptions options, Dictionary<string, string> headers)
+            public ServiceControlMetadataReporting(EndpointMetadata endpointMetadata, IServiceProvider builder, ReportingOptions options, Dictionary<string, string> headers)
             {
                 this.endpointMetadata = endpointMetadata;
                 this.builder = builder;
@@ -179,7 +179,7 @@ namespace NServiceBus.Metrics.ServiceControl
 
             protected override Task OnStart(IMessageSession session)
             {
-                var serviceControlReport = new NServiceBusMetadataReport(builder.Build<IDispatchMessages>(), options, headers, endpointMetadata);
+                var serviceControlReport = new NServiceBusMetadataReport(builder.GetRequiredService<IDispatchMessages>(), options, headers, endpointMetadata);
 
                 task = Task.Run(async () =>
                 {
@@ -210,7 +210,7 @@ namespace NServiceBus.Metrics.ServiceControl
 
             readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             readonly EndpointMetadata endpointMetadata;
-            readonly IBuilder builder;
+            readonly IServiceProvider builder;
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;
             Task task;
@@ -220,7 +220,7 @@ namespace NServiceBus.Metrics.ServiceControl
         {
             const string TaggedValueMetricContentType = "TaggedLongValueWriterOccurrence";
 
-            public ServiceControlRawDataReporting(IBuilder builder, ReportingOptions options, Dictionary<string, string> headers, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> metrics)
+            public ServiceControlRawDataReporting(IServiceProvider builder, ReportingOptions options, Dictionary<string, string> headers, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> metrics)
             {
                 this.builder = builder;
                 this.options = options;
@@ -256,7 +256,7 @@ namespace NServiceBus.Metrics.ServiceControl
                     {MetricHeaders.MetricType, metricType}
                 };
 
-                var dispatcher = builder.Build<IDispatchMessages>();
+                var dispatcher = builder.GetRequiredService<IDispatchMessages>();
                 var address = new UnicastAddressTag(options.ServiceControlMetricsAddress);
 
                 async Task Sender(byte[] body)
@@ -291,7 +291,7 @@ namespace NServiceBus.Metrics.ServiceControl
                 }
             }
 
-            readonly IBuilder builder;
+            readonly IServiceProvider builder;
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;
             readonly Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> metrics;

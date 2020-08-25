@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using NServiceBus;
 using NServiceBus.AcceptanceTesting;
 using NServiceBus.AcceptanceTests;
@@ -59,7 +60,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 
             protected override void Setup(FeatureConfigurationContext context)
             {
-                context.RegisterStartupTask(b => new NativeQueueLengthReporter(b.Build<IReportNativeQueueLength>()));
+                context.RegisterStartupTask(b => new NativeQueueLengthReporter(b.GetRequiredService<IReportNativeQueueLength>()));
             }
         }
 
@@ -101,14 +102,19 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 
         class MessageHandler : IHandleMessages<TaggedLongValueOccurrence>, IHandleMessages<EndpointMetadataReport>
         {
-            public Context TestContext { get; set; }
+            Context testContext;
+
+            public MessageHandler(Context context)
+            {
+                testContext = context;
+            }
 
             public Task Handle(TaggedLongValueOccurrence message, IMessageHandlerContext context)
             {
                 if (context.MessageHeaders.TryGetValue("NServiceBus.Metric.Type", out var metricType) && metricType == "QueueLength")
                 {
-                    TestContext.Message = message;
-                    TestContext.QueueLengthReportReceived = true;
+                    testContext.Message = message;
+                    testContext.QueueLengthReportReceived = true;
                 }
 
                 return Task.FromResult(0);

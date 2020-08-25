@@ -55,13 +55,18 @@ public class When_sending_regular_message : NServiceBusAcceptanceTest
 
         public class MessageHandler : IHandleMessages<Message>
         {
-            public Context TestContext { get; set; }
+            Context testContext;
+
+            public MessageHandler(Context context)
+            {
+                testContext = context;
+            }
 
             public Task Handle(Message message, IMessageHandlerContext context)
             {
                 context.MessageHeaders.TryGetValue("NServiceBus.Metric.InstanceId", out var header);
 
-                TestContext.NServiceBus_Metric_InstanceId_Header_Value = header;
+                testContext.NServiceBus_Metric_InstanceId_Header_Value = header;
 
                 return Task.FromResult(0);
             }

@@ -65,12 +65,17 @@
 
             public class MetricHandler : IHandleMessages<EndpointMetadataReport>
             {
-                public Context TestContext { get; set; }
+                Context testContext;
+
+                public MetricHandler(Context context)
+                {
+                    testContext = context;
+                }
 
                 public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
-                    TestContext.Report = message;
-                    TestContext.Headers = context.MessageHeaders;
+                    testContext.Report = message;
+                    testContext.Headers = context.MessageHeaders;
 
                     return Task.FromResult(0);
                 }
