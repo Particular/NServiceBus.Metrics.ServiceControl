@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using NServiceBus;
 using NServiceBus.AcceptanceTesting;
 using NServiceBus.AcceptanceTests;
@@ -59,7 +60,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 
             protected override void Setup(FeatureConfigurationContext context)
             {
-                context.RegisterStartupTask(b => new NativeQueueLengthReporter(b.Build<IReportNativeQueueLength>()));
+                context.RegisterStartupTask(b => new NativeQueueLengthReporter(b.GetRequiredService<IReportNativeQueueLength>()));
             }
         }
 
