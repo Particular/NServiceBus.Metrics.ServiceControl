@@ -160,7 +160,7 @@ namespace NServiceBus.Metrics.ServiceControl
         {
             if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
             {
-                context.Services.AddSingleton(new MetricsIdAttachingMutator(instanceId));
+                context.Services.AddSingleton<IMutateOutgoingMessages>(new MetricsIdAttachingMutator(instanceId));
             }
         }
 
