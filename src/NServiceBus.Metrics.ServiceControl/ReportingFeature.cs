@@ -110,7 +110,7 @@ namespace NServiceBus.Metrics.ServiceControl
             var localAddress = context.Settings.LocalAddress();
             var queueLengthReporter = new QueueLengthBufferReporter(queueLengthBuffer, queueLengthWriter, localAddress);
 
-            context.Container.RegisterSingleton<IReportNativeQueueLength>(queueLengthReporter);
+            context.Services.AddSingleton<IReportNativeQueueLength>(queueLengthReporter);
 
             return Tuple.Create(queueLengthBuffer, queueLengthWriter);
         }
@@ -160,7 +160,7 @@ namespace NServiceBus.Metrics.ServiceControl
         {
             if (options.TryGetValidEndpointInstanceIdOverride(out var instanceId))
             {
-                context.Container.ConfigureComponent(() => new MetricsIdAttachingMutator(instanceId), DependencyLifecycle.SingleInstance);
+                context.Services.AddSingleton<IMutateOutgoingMessages>(new MetricsIdAttachingMutator(instanceId));
             }
         }
 
