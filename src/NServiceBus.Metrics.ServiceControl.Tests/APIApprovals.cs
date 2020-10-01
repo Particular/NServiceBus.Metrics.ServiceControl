@@ -13,4 +13,3 @@ public class APIApprovals
         Approver.Verify(publicApi);
     }
 }
-
