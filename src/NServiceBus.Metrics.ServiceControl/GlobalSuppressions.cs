@@ -1,0 +1,5 @@
+﻿using System.Diagnostics.CodeAnalysis;
+
+[assembly: SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1500:Braces for multi-line statements should not share line", Justification = "Source package. Will fix later.", Scope = "member", Target = "~M:ServiceControl.Monitoring.Data.RingBuffer.TryWrite(System.Int64,System.Int32)~System.Boolean")]
+[assembly: SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1512:Single-line comments should not be followed by blank line", Justification = "Source package. Will fix later.>", Scope = "member", Target = "~M:ServiceControl.Monitoring.Data.LongValueWriterV1.Write(System.IO.BinaryWriter,System.ArraySegment{ServiceControl.Monitoring.Data.RingBuffer.Entry})")]
+[assembly: SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1512:Single-line comments should not be followed by blank line", Justification = "Source package. Will fix later.", Scope = "member", Target = "~M:ServiceControl.Monitoring.Data.OccurrenceWriterV1.Write(System.IO.BinaryWriter,System.ArraySegment{ServiceControl.Monitoring.Data.RingBuffer.Entry})")]

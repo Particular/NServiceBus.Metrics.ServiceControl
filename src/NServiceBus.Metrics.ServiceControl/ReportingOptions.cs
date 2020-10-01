@@ -29,13 +29,13 @@
 
         internal void CreateReporters()
         {
-            if(createReportersCalled)
+            if (createReportersCalled)
             {
                 throw new Exception("CreateReporters has already been called, and can only be called once.");
             }
 
             createReportersCalled = true;
-            if(createMetricReporters != null)
+            if (createMetricReporters != null)
             {
                 createMetricReporters();
                 createMetricReporters = null;
@@ -44,7 +44,7 @@
 
         internal void OnCreateReporters(Action createMetricReporters)
         {
-            if(createReportersCalled)
+            if (createReportersCalled)
             {
                 createMetricReporters();
             }
