@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
-    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="8.0.0-alpha.591" />
+    <PackageReference Include="NServiceBus.AcceptanceTesting" Version="8.0.0-alpha.627" />
     <PackageReference Include="NServiceBus.Metrics" Version="4.0.0-alpha.96" />
     <PackageReference Include="NServiceBus.Newtonsoft.Json" Version="2.2.0" />
     <PackageReference Include="NUnit" Version="3.12.0" />
