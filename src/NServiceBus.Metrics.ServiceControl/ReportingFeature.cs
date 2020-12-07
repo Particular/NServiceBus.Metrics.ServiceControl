@@ -271,6 +271,11 @@ namespace NServiceBus.Metrics.ServiceControl
                     {
                         await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), new ContextBag())
                             .ConfigureAwait(false);
+
+                        if (log.IsDebugEnabled)
+                        {
+                            log.Debug($"Sent {body.Length} bytes for {metricType} metric.");
+                        }
                     }
                     catch (Exception ex)
                     {
