@@ -1,3 +1,4 @@
+using System.Threading;
 using NServiceBus.Logging;
 using ServiceControl.Monitoring.Data;
 
@@ -17,9 +18,10 @@ class RingBufferExtensions
 
             if (attempts >= MaxExpectedWriteAttempts)
             {
-                log.Warn($"Failed to buffer metrics data for ${metricType} after ${attempts} attempts.");
+                log.Warn($"Thread {Thread.CurrentThread.ManagedThreadId} failed to buffer metrics data for '{metricType}' after {attempts} attempts.");
                 attempts = 0;
             }
+
         }
     }
 
