@@ -11,7 +11,7 @@ class RingBufferExtensions
     {
         var spinWait = new SpinWait();
         var attempts = 0;
-        
+
         while (true)
         {
             if (buffer.TryWrite(value, tag))
