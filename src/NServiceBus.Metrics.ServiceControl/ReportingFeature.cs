@@ -25,6 +25,7 @@ namespace NServiceBus.Metrics.ServiceControl
         public ReportingFeature()
         {
             EnableByDefault();
+            DependsOn("MetricsFeature");
             Prerequisite(ctx =>
             {
                 var options = ctx.Settings.GetOrDefault<MetricsOptions>();
