@@ -74,6 +74,7 @@ namespace NServiceBus.Metrics.ServiceControl
                 metrics[name] = Tuple.Create(buffer, writer);
             }
 
+            var reportingOptions = ReportingOptions.Get(options);
             options.RegisterObservers(probeContext =>
             {
                 foreach (var durationProbe in probeContext.Durations)
@@ -92,13 +93,13 @@ namespace NServiceBus.Metrics.ServiceControl
                         RegisterSignal(signalProbe);
                     }
                 }
+
+                reportingOptions.CreateReporters();
             });
 
             var queueLengthMetric = SetupQueueLengthReporting(context);
 
             metrics.Add("QueueLength", queueLengthMetric);
-
-            var reportingOptions = ReportingOptions.Get(options);
 
             SetUpServiceControlReporting(context, reportingOptions, endpointName, metrics);
         }
