@@ -23,8 +23,6 @@
             reporting.ServiceControlMetricsAddress = serviceControlMetricsAddress;
             reporting.ServiceControlReportingInterval = interval;
             reporting.EndpointInstanceIdOverride = instanceId;
-
-            options.RegisterObservers(context => reporting.CreateReporters());
         }
 
         /// <summary>
