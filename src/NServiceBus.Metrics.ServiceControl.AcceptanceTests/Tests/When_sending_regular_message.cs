@@ -14,9 +14,9 @@ public class When_sending_regular_message : NServiceBusAcceptanceTest
     public async Task Should_include_metrics_custom_instance_id_as_a_header()
     {
         var context = await Scenario.Define<Context>()
-            .WithEndpoint<Sender>(b=>b.When(c=>c.Send(NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Receiver)), new Message())))
+            .WithEndpoint<Sender>(b => b.When(c => c.Send(NServiceBus.AcceptanceTesting.Customization.Conventions.EndpointNamingConvention(typeof(Receiver)), new Message())))
             .WithEndpoint<Receiver>()
-            .Done(c=>c.NServiceBus_Metric_InstanceId_Header_Value == InstanceId)
+            .Done(c => c.NServiceBus_Metric_InstanceId_Header_Value == InstanceId)
             .Run()
             .ConfigureAwait(false);
 

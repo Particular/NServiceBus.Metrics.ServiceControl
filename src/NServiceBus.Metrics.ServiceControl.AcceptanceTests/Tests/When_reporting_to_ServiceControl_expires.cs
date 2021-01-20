@@ -18,7 +18,7 @@
         public async Task Should_report_nothing_when_ttbr_breached()
         {
             await Scenario.Define<Context>()
-                .WithEndpoint<Sender>(b => b.When(s=>s.SendLocal(new MyMessage())))
+                .WithEndpoint<Sender>(b => b.When(s => s.SendLocal(new MyMessage())))
                 .Done(ctx => ctx.MessageProcessedBySender)
                 .Run();
 
