@@ -5,7 +5,7 @@ using ServiceControl.Monitoring.Data;
 class RingBufferExtensions
 {
     // SpinWait.SpinOnce will start to yield at about 10 spinning iterations, so give it a few more tries before logging errors
-    const int MaxExpectedWriteAttempts = 15; 
+    const int MaxExpectedWriteAttempts = 15;
 
     public static void WriteTaggedValue(RingBuffer buffer, string metricType, long value, int tag)
     {

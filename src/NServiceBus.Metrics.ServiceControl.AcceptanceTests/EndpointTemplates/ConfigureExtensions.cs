@@ -2,7 +2,7 @@
 {
     using AcceptanceTesting.Support;
     using Microsoft.Extensions.DependencyInjection;
-    
+
     public static class ConfigureExtensions
     {
         public static void RegisterComponentsAndInheritanceHierarchy(this EndpointConfiguration builder, RunDescriptor runDescriptor)

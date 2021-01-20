@@ -18,19 +18,19 @@ namespace NServiceBus.Metrics.AcceptanceTests
         public async Task Should_not_delay_endpoint_stop()
         {
             var stopWatch = Stopwatch.StartNew();
-            
+
             await Scenario.Define<ScenarioContext>()
                 .WithEndpoint<Sender>()
                 .WithEndpoint<MonitoringSpy>()
                 .Done(c => c.EndpointsStarted)
                 .Run()
                 .ConfigureAwait(false);
-            
+
             stopWatch.Stop();
-            
+
             Assert.That(stopWatch.Elapsed, Is.LessThan(SendInterval));
         }
-        
+
         class Sender : EndpointConfigurationBuilder
         {
             public Sender()

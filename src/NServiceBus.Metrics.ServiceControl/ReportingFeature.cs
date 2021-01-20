@@ -1,24 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using NServiceBus.Extensibility;
-using NServiceBus.Features;
-using NServiceBus.Hosting;
-using NServiceBus.Logging;
-using NServiceBus.Metrics.ServiceControl.ServiceControlReporting;
-using NServiceBus.Routing;
-using NServiceBus.Support;
-using NServiceBus.Transport;
-using ServiceControl.Monitoring.Data;
-
-namespace NServiceBus.Metrics.ServiceControl
+﻿namespace NServiceBus.Metrics.ServiceControl
 {
-    using DeliveryConstraints;
-    using MessageMutator;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using NServiceBus.Extensibility;
+    using NServiceBus.Features;
+    using NServiceBus.Hosting;
+    using NServiceBus.Logging;
+    using NServiceBus.Metrics.ServiceControl.ServiceControlReporting;
+    using NServiceBus.Routing;
+    using NServiceBus.Support;
+    using NServiceBus.Transport;
+    using global::ServiceControl.Monitoring.Data;
+    using NServiceBus.DeliveryConstraints;
+    using NServiceBus.MessageMutator;
     using Microsoft.Extensions.DependencyInjection;
-    using Performance.TimeToBeReceived;
+    using NServiceBus.Performance.TimeToBeReceived;
 
     class ReportingFeature : Feature
     {
