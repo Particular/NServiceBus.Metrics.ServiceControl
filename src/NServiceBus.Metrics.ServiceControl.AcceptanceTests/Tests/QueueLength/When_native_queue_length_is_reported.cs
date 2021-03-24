@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus;
@@ -73,14 +74,14 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
                 this.queueLengthReporter = queueLengthReporter;
             }
 
-            protected override Task OnStart(IMessageSession session)
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken)
             {
                 queueLengthReporter.ReportQueueLength("queue", 10);
 
                 return Task.FromResult(0);
             }
 
-            protected override Task OnStop(IMessageSession session)
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken)
             {
                 return Task.FromResult(0);
             }
