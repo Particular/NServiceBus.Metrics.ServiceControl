@@ -315,7 +315,7 @@
             public Task MutateOutgoing(MutateOutgoingMessageContext context)
             {
                 context.OutgoingHeaders[MetricHeaders.MetricInstanceId] = instanceId;
-                return TaskExtensions.Completed;
+                return Task.CompletedTask;
             }
         }
     }
