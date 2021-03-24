@@ -181,19 +181,20 @@
 
                 task = Task.Run(async () =>
                 {
-                    while (cancellationTokenSource.IsCancellationRequested == false)
+                    try
                     {
-                        await serviceControlReport.RunReportAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-
-                        try
+                        while (cancellationTokenSource.IsCancellationRequested == false)
                         {
+                            await serviceControlReport.RunReportAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+
+
                             await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
                         }
-                        catch (OperationCanceledException)
-                        {
-                            // shutdown
-                            return;
-                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // shutdown
+                        return;
                     }
                 },
                 cancellationToken);
@@ -255,7 +256,7 @@
                 var dispatcher = builder.GetRequiredService<IMessageDispatcher>();
                 var address = new UnicastAddressTag(options.ServiceControlMetricsAddress);
 
-                async Task Sender(byte[] body)
+                async Task Sender(byte[] body, CancellationToken cancellationToken)
                 {
                     var message = new OutgoingMessage(Guid.NewGuid().ToString(), reporterHeaders, body);
                     var dispatchProperties = new DispatchProperties
@@ -263,10 +264,10 @@
                         DiscardIfNotReceivedBefore = new DiscardIfNotReceivedBefore(options.TimeToBeReceived)
                     };
                     var operation = new TransportOperation(message, address, dispatchProperties, DispatchConsistency.Default);
+
                     try
                     {
-                        //TODO: Need to update SC.Monitoring.Data first
-                        await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), CancellationToken.None)
+                        await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), cancellationToken)
                             .ConfigureAwait(false);
 
                         if (log.IsDebugEnabled)
