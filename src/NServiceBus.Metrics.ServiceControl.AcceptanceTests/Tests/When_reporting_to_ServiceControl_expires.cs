@@ -102,7 +102,7 @@
                 public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
                     testContext.WasCalled = true;
-                    return Task.FromResult(0);
+                    return Task.CompletedTask;
                 }
             }
         }

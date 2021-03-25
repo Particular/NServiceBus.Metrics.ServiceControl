@@ -57,7 +57,7 @@ namespace NServiceBus.Metrics.AcceptanceTests
             {
                 public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
-                    return Task.FromResult(0);
+                    return Task.CompletedTask;
                 }
             }
         }

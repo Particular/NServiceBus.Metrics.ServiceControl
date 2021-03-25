@@ -175,34 +175,33 @@
                 headers.Add(Headers.ContentType, ContentTypes.Json);
             }
 
-            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken)
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 var serviceControlReport = new NServiceBusMetadataReport(builder.GetRequiredService<IMessageDispatcher>(), options, headers, endpointMetadata);
 
-                task = Task.Run(async () =>
-                {
-                    try
+                task = Task.Run(
+                    async () =>
                     {
                         while (cancellationTokenSource.IsCancellationRequested == false)
                         {
-                            await serviceControlReport.RunReportAsync(cancellationTokenSource.Token).ConfigureAwait(false);
-
-
-                            await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
+                            try
+                            {
+                                await serviceControlReport.RunReportAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+                                await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException)
+                            {
+                                // shutdown
+                                return;
+                            }
                         }
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // shutdown
-                        return;
-                    }
-                },
-                cancellationToken);
+                    },
+                    CancellationToken.None);
 
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
 
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken)
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 cancellationTokenSource.Cancel();
                 return task;
@@ -230,7 +229,7 @@
                 reporters = new List<RawDataReporter>();
             }
 
-            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken)
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 foreach (var metric in metrics)
                 {
@@ -242,7 +241,7 @@
                     reporter.Start();
                 }
 
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
 
             RawDataReporter CreateReporter(string metricType, RingBuffer buffer, TaggedLongValueWriterV1 writer)
@@ -259,10 +258,12 @@
                 async Task Sender(byte[] body, CancellationToken cancellationToken)
                 {
                     var message = new OutgoingMessage(Guid.NewGuid().ToString(), reporterHeaders, body);
+
                     var dispatchProperties = new DispatchProperties
                     {
-                        DiscardIfNotReceivedBefore = new DiscardIfNotReceivedBefore(options.TimeToBeReceived)
+                        DiscardIfNotReceivedBefore = new DiscardIfNotReceivedBefore(options.TimeToBeReceived),
                     };
+
                     var operation = new TransportOperation(message, address, dispatchProperties, DispatchConsistency.Default);
 
                     try
@@ -284,7 +285,7 @@
                 return new RawDataReporter(Sender, buffer, (entries, binaryWriter) => writer.Write(binaryWriter, entries), 2048, options.ServiceControlReportingInterval);
             }
 
-            protected override async Task OnStop(IMessageSession session, CancellationToken cancellationToken)
+            protected override async Task OnStop(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 await Task.WhenAll(reporters.Select(r => r.Stop())).ConfigureAwait(false);
 

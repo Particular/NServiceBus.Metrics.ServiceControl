@@ -74,16 +74,16 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
                 this.queueLengthReporter = queueLengthReporter;
             }
 
-            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken)
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 queueLengthReporter.ReportQueueLength("queue", 10);
 
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
 
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken)
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default)
             {
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
         }
     }
@@ -118,12 +118,12 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
                     testContext.QueueLengthReportReceived = true;
                 }
 
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
 
             public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
             {
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
         }
     }
