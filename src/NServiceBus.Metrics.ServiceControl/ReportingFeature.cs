@@ -179,6 +179,7 @@
             {
                 var serviceControlReport = new NServiceBusMetadataReport(builder.GetRequiredService<IMessageDispatcher>(), options, headers, endpointMetadata);
 
+                // CancellationToken.None because otherwise the task simply won't start if the token is cancelled
                 task = Task.Run(
                     async () =>
                     {
@@ -189,10 +190,14 @@
                                 await serviceControlReport.RunReportAsync(cancellationTokenSource.Token).ConfigureAwait(false);
                                 await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
                             }
-                            catch (OperationCanceledException)
+                            catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
                             {
                                 // shutdown
                                 return;
+                            }
+                            catch (Exception ex)
+                            {
+                                log.Error("Failed to report metrics to ServiceControl.", ex);
                             }
                         }
                     },
@@ -213,6 +218,8 @@
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;
             Task task;
+
+            static readonly ILog log = LogManager.GetLogger<ServiceControlMetadataReporting>();
         }
 
         class ServiceControlRawDataReporting : FeatureStartupTask
