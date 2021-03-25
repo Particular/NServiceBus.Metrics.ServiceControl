@@ -5,7 +5,6 @@
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using NServiceBus.Extensibility;
     using NServiceBus.Features;
     using NServiceBus.Hosting;
     using NServiceBus.Logging;
@@ -14,7 +13,6 @@
     using NServiceBus.Support;
     using NServiceBus.Transport;
     using global::ServiceControl.Monitoring.Data;
-    using NServiceBus.DeliveryConstraints;
     using NServiceBus.MessageMutator;
     using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.Performance.TimeToBeReceived;
@@ -177,32 +175,38 @@
                 headers.Add(Headers.ContentType, ContentTypes.Json);
             }
 
-            protected override Task OnStart(IMessageSession session)
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
             {
-                var serviceControlReport = new NServiceBusMetadataReport(builder.GetRequiredService<IDispatchMessages>(), options, headers, endpointMetadata);
+                var serviceControlReport = new NServiceBusMetadataReport(builder.GetRequiredService<IMessageDispatcher>(), options, headers, endpointMetadata);
 
-                task = Task.Run(async () =>
-                {
-                    while (cancellationTokenSource.IsCancellationRequested == false)
+                // CancellationToken.None because otherwise the task simply won't start if the token is cancelled
+                task = Task.Run(
+                    async () =>
                     {
-                        await serviceControlReport.RunReportAsync().ConfigureAwait(false);
-
-                        try
+                        while (cancellationTokenSource.IsCancellationRequested == false)
                         {
-                            await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
+                            try
+                            {
+                                await serviceControlReport.RunReportAsync(cancellationTokenSource.Token).ConfigureAwait(false);
+                                await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
+                            }
+                            catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+                            {
+                                // shutdown
+                                return;
+                            }
+                            catch (Exception ex)
+                            {
+                                log.Error("Failed to report metrics to ServiceControl.", ex);
+                            }
                         }
-                        catch (OperationCanceledException)
-                        {
-                            // shutdown
-                            return;
-                        }
-                    }
-                });
+                    },
+                    CancellationToken.None);
 
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
 
-            protected override Task OnStop(IMessageSession session)
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 cancellationTokenSource.Cancel();
                 return task;
@@ -214,6 +218,8 @@
             readonly ReportingOptions options;
             readonly Dictionary<string, string> headers;
             Task task;
+
+            static readonly ILog log = LogManager.GetLogger<ServiceControlMetadataReporting>();
         }
 
         class ServiceControlRawDataReporting : FeatureStartupTask
@@ -230,7 +236,7 @@
                 reporters = new List<RawDataReporter>();
             }
 
-            protected override Task OnStart(IMessageSession session)
+            protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 foreach (var metric in metrics)
                 {
@@ -242,7 +248,7 @@
                     reporter.Start();
                 }
 
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
 
             RawDataReporter CreateReporter(string metricType, RingBuffer buffer, TaggedLongValueWriterV1 writer)
@@ -253,20 +259,23 @@
                     {MetricHeaders.MetricType, metricType}
                 };
 
-                var dispatcher = builder.GetRequiredService<IDispatchMessages>();
+                var dispatcher = builder.GetRequiredService<IMessageDispatcher>();
                 var address = new UnicastAddressTag(options.ServiceControlMetricsAddress);
 
-                async Task Sender(byte[] body)
+                async Task Sender(byte[] body, CancellationToken cancellationToken)
                 {
                     var message = new OutgoingMessage(Guid.NewGuid().ToString(), reporterHeaders, body);
-                    var constraints = new List<DeliveryConstraint>
+
+                    var dispatchProperties = new DispatchProperties
                     {
-                        new DiscardIfNotReceivedBefore(options.TimeToBeReceived)
+                        DiscardIfNotReceivedBefore = new DiscardIfNotReceivedBefore(options.TimeToBeReceived),
                     };
-                    var operation = new TransportOperation(message, address, DispatchConsistency.Default, constraints);
+
+                    var operation = new TransportOperation(message, address, dispatchProperties, DispatchConsistency.Default);
+
                     try
                     {
-                        await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), new ContextBag())
+                        await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), cancellationToken)
                             .ConfigureAwait(false);
 
                         if (log.IsDebugEnabled)
@@ -283,7 +292,7 @@
                 return new RawDataReporter(Sender, buffer, (entries, binaryWriter) => writer.Write(binaryWriter, entries), 2048, options.ServiceControlReportingInterval);
             }
 
-            protected override async Task OnStop(IMessageSession session)
+            protected override async Task OnStop(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 await Task.WhenAll(reporters.Select(r => r.Stop())).ConfigureAwait(false);
 
@@ -314,7 +323,7 @@
             public Task MutateOutgoing(MutateOutgoingMessageContext context)
             {
                 context.OutgoingHeaders[MetricHeaders.MetricInstanceId] = instanceId;
-                return TaskExtensions.Completed;
+                return Task.CompletedTask;
             }
         }
     }

@@ -12,7 +12,7 @@
     {
         static string MonitoringSpyAddress => Conventions.EndpointNamingConvention(typeof(MonitoringMock));
         static Guid HostId = Guid.NewGuid();
-        static readonly TimeSpan TTBR = TimeSpan.FromSeconds(10);
+        static readonly TimeSpan TTBR = TimeSpan.FromSeconds(5);
 
         [Test]
         public async Task Should_report_nothing_when_ttbr_breached()
@@ -102,7 +102,7 @@
                 public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
                     testContext.WasCalled = true;
-                    return Task.FromResult(0);
+                    return Task.CompletedTask;
                 }
             }
         }

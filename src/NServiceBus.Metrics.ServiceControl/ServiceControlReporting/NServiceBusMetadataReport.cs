@@ -3,9 +3,8 @@
     using System;
     using System.Collections.Generic;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
-    using DeliveryConstraints;
-    using Extensibility;
     using Logging;
     using Performance.TimeToBeReceived;
     using Routing;
@@ -13,7 +12,7 @@
 
     class NServiceBusMetadataReport
     {
-        public NServiceBusMetadataReport(IDispatchMessages dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
+        public NServiceBusMetadataReport(IMessageDispatcher dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
         {
             this.dispatcher = dispatcher;
             this.headers = headers;
@@ -23,22 +22,22 @@
             timeToBeReceived = options.TimeToBeReceived;
         }
 
-        public async Task RunReportAsync()
+        public async Task RunReportAsync(CancellationToken cancellationToken)
         {
             var stringBody = endpointMetadata.ToJson();
             var body = Encoding.UTF8.GetBytes(stringBody);
 
             var message = new OutgoingMessage(Guid.NewGuid().ToString(), headers, body);
-            var constraints = new List<DeliveryConstraint>
+            var dispatchProperties = new DispatchProperties
             {
-                new DiscardIfNotReceivedBefore(timeToBeReceived)
+                DiscardIfNotReceivedBefore = new DiscardIfNotReceivedBefore(timeToBeReceived)
             };
 
-            var operation = new TransportOperation(message, destination, DispatchConsistency.Default, constraints);
+            var operation = new TransportOperation(message, destination, dispatchProperties, DispatchConsistency.Default);
 
             try
             {
-                await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), new ContextBag())
+                await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), cancellationToken)
                     .ConfigureAwait(false);
             }
             catch (Exception exception)
@@ -48,7 +47,7 @@
         }
 
         readonly UnicastAddressTag destination;
-        readonly IDispatchMessages dispatcher;
+        readonly IMessageDispatcher dispatcher;
         readonly Dictionary<string, string> headers;
         readonly EndpointMetadata endpointMetadata;
         readonly TimeSpan timeToBeReceived;

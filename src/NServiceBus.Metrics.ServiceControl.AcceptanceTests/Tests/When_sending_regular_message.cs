@@ -68,7 +68,7 @@ public class When_sending_regular_message : NServiceBusAcceptanceTest
 
                 testContext.NServiceBus_Metric_InstanceId_Header_Value = header;
 
-                return Task.FromResult(0);
+                return Task.CompletedTask;
             }
         }
     }

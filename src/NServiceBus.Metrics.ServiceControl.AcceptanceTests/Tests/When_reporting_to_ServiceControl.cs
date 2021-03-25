@@ -77,7 +77,7 @@
                     testContext.Report = message;
                     testContext.Headers = context.MessageHeaders;
 
-                    return Task.FromResult(0);
+                    return Task.CompletedTask;
                 }
             }
         }
