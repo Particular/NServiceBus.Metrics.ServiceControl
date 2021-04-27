@@ -22,7 +22,7 @@
             timeToBeReceived = options.TimeToBeReceived;
         }
 
-        public async Task RunReportAsync(CancellationToken cancellationToken)
+        public async Task RunReportAsync(CancellationToken cancellationToken = default)
         {
             var stringBody = endpointMetadata.ToJson();
             var body = Encoding.UTF8.GetBytes(stringBody);
