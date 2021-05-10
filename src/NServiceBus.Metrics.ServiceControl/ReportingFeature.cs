@@ -5,17 +5,17 @@
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using global::ServiceControl.Monitoring.Data;
+    using Microsoft.Extensions.DependencyInjection;
     using NServiceBus.Features;
     using NServiceBus.Hosting;
     using NServiceBus.Logging;
+    using NServiceBus.MessageMutator;
     using NServiceBus.Metrics.ServiceControl.ServiceControlReporting;
+    using NServiceBus.Performance.TimeToBeReceived;
     using NServiceBus.Routing;
     using NServiceBus.Support;
     using NServiceBus.Transport;
-    using global::ServiceControl.Monitoring.Data;
-    using NServiceBus.MessageMutator;
-    using Microsoft.Extensions.DependencyInjection;
-    using NServiceBus.Performance.TimeToBeReceived;
 
     class ReportingFeature : Feature
     {
@@ -190,9 +190,18 @@
                                 await serviceControlReport.RunReportAsync(cancellationTokenSource.Token).ConfigureAwait(false);
                                 await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
                             }
-                            catch (OperationCanceledException) when (cancellationTokenSource.IsCancellationRequested)
+                            catch (OperationCanceledException ex)
                             {
                                 // shutdown
+                                if (cancellationTokenSource.IsCancellationRequested)
+                                {
+                                    log.Debug("Metrics reporting cancelled.", ex);
+                                }
+                                else
+                                {
+                                    log.Warn("OperationCanceledException thrown.", ex);
+                                }
+
                                 return;
                             }
                             catch (Exception ex)
