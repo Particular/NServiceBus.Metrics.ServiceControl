@@ -195,7 +195,7 @@
                                 // shutdown
                                 if (cancellationTokenSource.IsCancellationRequested)
                                 {
-                                    log.Debug("Message processing cancelled.", ex);
+                                    log.Debug("Metrics reporting cancelled.", ex);
                                 }
                                 else
                                 {
