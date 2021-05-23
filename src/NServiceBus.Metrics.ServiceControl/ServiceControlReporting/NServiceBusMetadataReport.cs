@@ -40,9 +40,9 @@
                 await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), cancellationToken)
                     .ConfigureAwait(false);
             }
-            catch (Exception exception)
+            catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
             {
-                log.Error($"Error while sending metric data to {destination}.", exception);
+                log.Error($"Error while sending metric data to {destination}.", ex);
             }
         }
 
