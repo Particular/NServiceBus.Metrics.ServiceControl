@@ -179,30 +179,22 @@
             {
                 var serviceControlReport = new NServiceBusMetadataReport(builder.GetRequiredService<IMessageDispatcher>(), options, headers, endpointMetadata);
 
-                // CancellationToken.None because otherwise the task simply won't start if the token is cancelled
+                // CancellationToken.None because otherwise the task simply won't start if the token is canceled
                 task = Task.Run(
                     async () =>
                     {
-                        while (cancellationTokenSource.IsCancellationRequested == false)
+                        while (!cancellationTokenSource.IsCancellationRequested)
                         {
                             try
                             {
                                 await serviceControlReport.RunReportAsync(cancellationTokenSource.Token).ConfigureAwait(false);
                                 await Task.Delay(options.ServiceControlReportingInterval, cancellationTokenSource.Token).ConfigureAwait(false);
                             }
-                            catch (OperationCanceledException ex)
+                            catch (Exception ex) when (ex.IsCausedBy(cancellationTokenSource.Token))
                             {
-                                // shutdown
-                                if (cancellationTokenSource.IsCancellationRequested)
-                                {
-                                    log.Debug("Metrics reporting cancelled.", ex);
-                                }
-                                else
-                                {
-                                    log.Warn("OperationCanceledException thrown.", ex);
-                                }
-
-                                return;
+                                // private token, reporting is being stopped, log the exception in case the stack trace is ever needed for debugging
+                                log.Debug("Operation cancelled while stopping ServiceControl metadata reporting.", ex);
+                                break;
                             }
                             catch (Exception ex)
                             {
@@ -292,7 +284,7 @@
                             log.Debug($"Sent {body.Length} bytes for {metricType} metric.");
                         }
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
                     {
                         log.Error($"Error while reporting raw data to {options.ServiceControlMetricsAddress}.", ex);
                     }
