@@ -193,7 +193,7 @@
                             catch (Exception ex) when (ex.IsCausedBy(cancellationTokenSource.Token))
                             {
                                 // private token, reporting is being stopped, log the exception in case the stack trace is ever needed for debugging
-                                log.Debug("Operation cancelled while stopping ServiceControl metadata reporting.", ex);
+                                log.Debug("Operation canceled while stopping ServiceControl metadata reporting.", ex);
                                 break;
                             }
                             catch (Exception ex)
