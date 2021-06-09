@@ -16,7 +16,7 @@
     <PackageReference Include="NServiceBus.Metrics" Version="4.0.0-alpha.150" />
     <PackageReference Include="NServiceBus.Newtonsoft.Json" Version="2.3.0" />
     <PackageReference Include="NUnit" Version="3.13.2" />
-    <PackageReference Include="NUnit3TestAdapter" Version="3.17.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
   </ItemGroup>
 
 </Project>
