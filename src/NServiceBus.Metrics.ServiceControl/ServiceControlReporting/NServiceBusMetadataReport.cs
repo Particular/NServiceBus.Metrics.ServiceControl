@@ -42,7 +42,7 @@
             }
             catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
             {
-                log.Error($"Error while sending metric data to {destination}.", ex);
+                log.Error($"Error while sending metric data to {destination.Destination}.", ex);
             }
         }
 
