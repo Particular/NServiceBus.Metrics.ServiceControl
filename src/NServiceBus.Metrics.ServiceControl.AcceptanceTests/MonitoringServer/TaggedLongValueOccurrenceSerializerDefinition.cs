@@ -16,6 +16,46 @@
         }
     }
 
+    class ReadOnlyStream : Stream
+    {
+        ReadOnlyMemory<byte> memory;
+        long position;
+
+        public ReadOnlyStream(ReadOnlyMemory<byte> memory)
+        {
+            this.memory = memory;
+            position = 0;
+        }
+
+        public override void Flush() => throw new NotSupportedException();
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            var bytesToCopy = (int)Math.Min(count, memory.Length - position);
+
+            var destination = buffer.AsSpan().Slice(offset, bytesToCopy);
+            var source = memory.Span.Slice((int)position, bytesToCopy);
+
+            source.CopyTo(destination);
+
+            position += bytesToCopy;
+
+            return bytesToCopy;
+        }
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => memory.Length;
+        public override long Position { get => position; set => position = value; }
+    }
+
     class TaggedLongValueSerializer : IMessageSerializer
     {
         static readonly object[] NoMessages = new object[0];
@@ -36,9 +76,9 @@
         //+-------+-------+-------+-------+---------------+-------+-------+
         //|    value 1    | date2 | tag2  |     value 2   | date3 | ...   |
         //+-------+---------------+-------+---------------+-------+-------+
-        public object[] Deserialize(Stream stream, IList<Type> messageTypes = null)
+        public object[] Deserialize(ReadOnlyMemory<byte> body, IList<Type> messageTypes = null)
         {
-            var reader = new BinaryReader(stream);
+            var reader = new BinaryReader(new ReadOnlyStream(body));
 
             var version = reader.ReadInt64();
 
