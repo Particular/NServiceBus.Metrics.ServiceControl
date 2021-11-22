@@ -7,15 +7,15 @@
     using System.Threading.Tasks;
     using global::ServiceControl.Monitoring.Data;
     using Microsoft.Extensions.DependencyInjection;
-    using NServiceBus.Features;
-    using NServiceBus.Hosting;
-    using NServiceBus.Logging;
-    using NServiceBus.MessageMutator;
-    using NServiceBus.Metrics.ServiceControl.ServiceControlReporting;
-    using NServiceBus.Performance.TimeToBeReceived;
-    using NServiceBus.Routing;
-    using NServiceBus.Support;
-    using NServiceBus.Transport;
+    using Features;
+    using Hosting;
+    using Logging;
+    using MessageMutator;
+    using ServiceControlReporting;
+    using Performance.TimeToBeReceived;
+    using Routing;
+    using Support;
+    using Transport;
 
     class ReportingFeature : Feature
     {
@@ -105,18 +105,15 @@
         {
             var queueLengthBuffer = new RingBuffer();
             var queueLengthWriter = new TaggedLongValueWriterV1();
-            var localAddress = context.Settings.LocalAddress();
-            var queueLengthReporter = new QueueLengthBufferReporter(queueLengthBuffer, queueLengthWriter, localAddress);
 
-            context.Services.AddSingleton<IReportNativeQueueLength>(queueLengthReporter);
+            context.Services.AddSingleton<IReportNativeQueueLength>(sp =>
+                new QueueLengthBufferReporter(queueLengthBuffer, queueLengthWriter, sp.GetRequiredService<ReceiveAddresses>()));
 
             return Tuple.Create(queueLengthBuffer, queueLengthWriter);
         }
 
         void SetUpServiceControlReporting(FeatureConfigurationContext context, ReportingOptions options, string endpointName, Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> durations)
         {
-            var endpointMetadata = new EndpointMetadata(context.Settings.LocalAddress());
-
             Dictionary<string, string> BuildBaseHeaders(IServiceProvider b)
             {
                 var hostInformation = b.GetRequiredService<HostInformation>();
@@ -140,8 +137,9 @@
             context.RegisterStartupTask(builder =>
             {
                 var headers = BuildBaseHeaders(builder);
+                var receiveAddresses = builder.GetRequiredService<ReceiveAddresses>();
 
-                return new ServiceControlMetadataReporting(endpointMetadata, builder, options, headers);
+                return new ServiceControlMetadataReporting(receiveAddresses.MainReceiveAddress, builder, options, headers);
             });
 
             context.RegisterStartupTask(builder =>
@@ -164,9 +162,9 @@
 
         class ServiceControlMetadataReporting : FeatureStartupTask
         {
-            public ServiceControlMetadataReporting(EndpointMetadata endpointMetadata, IServiceProvider builder, ReportingOptions options, Dictionary<string, string> headers)
+            public ServiceControlMetadataReporting(string receiveAddress, IServiceProvider builder, ReportingOptions options, Dictionary<string, string> headers)
             {
-                this.endpointMetadata = endpointMetadata;
+                endpointMetadata = new EndpointMetadata(receiveAddress);
                 this.builder = builder;
                 this.options = options;
                 this.headers = headers;
