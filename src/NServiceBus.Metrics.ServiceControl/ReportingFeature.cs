@@ -193,12 +193,12 @@
                             catch (Exception ex) when (ex.IsCausedBy(cancellationTokenSource.Token))
                             {
                                 // private token, reporting is being stopped, log the exception in case the stack trace is ever needed for debugging
-                                log.Debug("Operation canceled while stopping ServiceControl metadata reporting.", ex);
+                                Log.Debug("Operation canceled while stopping ServiceControl metadata reporting.", ex);
                                 break;
                             }
                             catch (Exception ex)
                             {
-                                log.Error("Failed to report metrics to ServiceControl.", ex);
+                                Log.Error("Failed to report metrics to ServiceControl.", ex);
                             }
                         }
                     },
@@ -220,7 +220,7 @@
             readonly Dictionary<string, string> headers;
             Task task;
 
-            static readonly ILog log = LogManager.GetLogger<ServiceControlMetadataReporting>();
+            static readonly ILog Log = LogManager.GetLogger<ServiceControlMetadataReporting>();
         }
 
         class ServiceControlRawDataReporting : FeatureStartupTask
@@ -279,14 +279,14 @@
                         await dispatcher.Dispatch(new TransportOperations(operation), new TransportTransaction(), cancellationToken)
                             .ConfigureAwait(false);
 
-                        if (log.IsDebugEnabled)
+                        if (Log.IsDebugEnabled)
                         {
-                            log.Debug($"Sent {body.Length} bytes for {metricType} metric.");
+                            Log.Debug($"Sent {body.Length} bytes for {metricType} metric.");
                         }
                     }
                     catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
                     {
-                        log.Error($"Error while reporting raw data to {options.ServiceControlMetricsAddress}.", ex);
+                        Log.Error($"Error while reporting raw data to {options.ServiceControlMetricsAddress}.", ex);
                     }
                 }
 
@@ -309,7 +309,7 @@
             readonly Dictionary<string, Tuple<RingBuffer, TaggedLongValueWriterV1>> metrics;
             readonly List<RawDataReporter> reporters;
 
-            static readonly ILog log = LogManager.GetLogger<ServiceControlRawDataReporting>();
+            static readonly ILog Log = LogManager.GetLogger<ServiceControlRawDataReporting>();
         }
 
         class MetricsIdAttachingMutator : IMutateOutgoingMessages
