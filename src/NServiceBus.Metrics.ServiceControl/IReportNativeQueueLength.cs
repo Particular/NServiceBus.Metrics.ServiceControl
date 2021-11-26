@@ -25,14 +25,11 @@
         TaggedLongValueWriterV1 writer;
         string[] monitoredQueues;
 
-        public QueueLengthBufferReporter(RingBuffer buffer, TaggedLongValueWriterV1 writer, ReceiveAddresses receiveAddresses)
+        public QueueLengthBufferReporter(RingBuffer buffer, TaggedLongValueWriterV1 writer, params string[] monitoredQueues)
         {
             this.buffer = buffer;
             this.writer = writer;
-            monitoredQueues = new[]
-            {
-                receiveAddresses.MainReceiveAddress
-            };
+            this.monitoredQueues = monitoredQueues;
         }
 
         public void ReportQueueLength(string physicalQueueName, long queueLength)

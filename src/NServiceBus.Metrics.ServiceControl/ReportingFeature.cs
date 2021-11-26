@@ -107,7 +107,10 @@
             var queueLengthWriter = new TaggedLongValueWriterV1();
 
             context.Services.AddSingleton<IReportNativeQueueLength>(sp =>
-                new QueueLengthBufferReporter(queueLengthBuffer, queueLengthWriter, sp.GetRequiredService<ReceiveAddresses>()));
+                new QueueLengthBufferReporter(
+                    queueLengthBuffer,
+                    queueLengthWriter,
+                    sp.GetRequiredService<ReceiveAddresses>().MainReceiveAddress));
 
             return Tuple.Create(queueLengthBuffer, queueLengthWriter);
         }
