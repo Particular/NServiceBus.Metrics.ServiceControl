@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="NServiceBus" Version="[8.0.0-alpha.1900, 9.0.0)" />
-    <PackageReference Include="NServiceBus.Metrics" Version="[4.0.0-alpha.152, 5.0.0)" />
+    <PackageReference Include="NServiceBus.Metrics" Version="[4.0.0-alpha.153, 5.0.0)" />
     <PackageReference Include="Particular.Packaging" Version="1.3.0" PrivateAssets="All" />
     <PackageReference Include="ServiceControl.Monitoring.Data" Version="2.2.0-alpha.107" PrivateAssets="All" />
   </ItemGroup>
