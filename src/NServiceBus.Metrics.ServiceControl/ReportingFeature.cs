@@ -5,15 +5,15 @@
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using global::ServiceControl.Monitoring.Data;
-    using Microsoft.Extensions.DependencyInjection;
     using Features;
+    using global::ServiceControl.Monitoring.Data;
     using Hosting;
     using Logging;
     using MessageMutator;
-    using ServiceControlReporting;
+    using Microsoft.Extensions.DependencyInjection;
     using Performance.TimeToBeReceived;
     using Routing;
+    using ServiceControlReporting;
     using Support;
     using Transport;
 
@@ -77,10 +77,12 @@
                 foreach (var durationProbe in probeContext.Durations)
                 {
                     var name = durationProbe.Name;
+#pragma warning disable IDE0078 // Use pattern matching - Revert when using C# 9 or greater
                     if (name == "Processing Time" || name == "Critical Time")
                     {
                         RegisterDuration(durationProbe);
                     }
+#pragma warning restore IDE0078 // Use pattern matching
                 }
 
                 foreach (var signalProbe in probeContext.Signals)
