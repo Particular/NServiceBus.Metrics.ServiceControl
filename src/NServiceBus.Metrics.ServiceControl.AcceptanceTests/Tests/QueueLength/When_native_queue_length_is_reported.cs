@@ -95,7 +95,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
         {
             EndpointSetup<DefaultServer>(c =>
             {
-                c.UseSerialization<NewtonsoftSerializer>();
+                c.UseSerialization<NewtonsoftJsonSerializer>();
                 c.AddDeserializer<TaggedLongValueWriterOccurrenceSerializerDefinition>();
                 c.LimitMessageProcessingConcurrencyTo(1);
             }).IncludeType<EndpointMetadataReport>().IncludeType<TaggedLongValueOccurrence>();
