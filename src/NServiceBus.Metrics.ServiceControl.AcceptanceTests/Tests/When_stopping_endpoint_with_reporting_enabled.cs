@@ -48,7 +48,7 @@ namespace NServiceBus.Metrics.AcceptanceTests
             {
                 EndpointSetup<DefaultServer>(c =>
                 {
-                    c.UseSerialization<NewtonsoftSerializer>();
+                    c.UseSerialization<NewtonsoftJsonSerializer>();
                     c.LimitMessageProcessingConcurrencyTo(1);
                 }).IncludeType<EndpointMetadataReport>();
             }
