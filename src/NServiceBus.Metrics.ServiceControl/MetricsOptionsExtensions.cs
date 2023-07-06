@@ -11,7 +11,7 @@
         /// </summary>
         /// <param name="options">The metrics options configuration object.</param>
         /// <param name="serviceControlMetricsAddress">The transport address of the ServiceControl instance</param>
-        /// <param name="interval">Maximum interval between consecutive reports. Recommended to use a value between 10 and 60 seconds. Metrics messages can be dispatched more often when the instance is under load.</param>
+        /// <param name="interval">Maximum interval between consecutive reports. Recommended to use a value between 10 and 60 seconds. Metrics messages will be dispatched more frequently when the instance is under load.</param>
         /// <param name="instanceId">Unique, human-readable, stable between restarts, identifier for running endpoint instance.</param>
         public static void SendMetricDataToServiceControl(this MetricsOptions options, string serviceControlMetricsAddress, TimeSpan interval, string instanceId = null)
         {
