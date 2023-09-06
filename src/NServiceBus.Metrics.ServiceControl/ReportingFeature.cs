@@ -77,12 +77,10 @@
                 foreach (var durationProbe in probeContext.Durations)
                 {
                     var name = durationProbe.Name;
-#pragma warning disable IDE0078 // Use pattern matching - Revert when using C# 9 or greater
-                    if (name == "Processing Time" || name == "Critical Time")
+                    if (name is "Processing Time" or "Critical Time")
                     {
                         RegisterDuration(durationProbe);
                     }
-#pragma warning restore IDE0078 // Use pattern matching
                 }
 
                 foreach (var signalProbe in probeContext.Signals)
