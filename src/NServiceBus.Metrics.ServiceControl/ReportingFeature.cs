@@ -235,7 +235,7 @@
                 this.headers = headers;
                 this.metrics = metrics;
 
-                reporters = new List<RawDataReporter>();
+                reporters = [];
             }
 
             protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
