@@ -15,8 +15,8 @@
         /// <param name="instanceId">Unique, human-readable, stable between restarts, identifier for running endpoint instance.</param>
         public static void SendMetricDataToServiceControl(this MetricsOptions options, string serviceControlMetricsAddress, TimeSpan interval, string instanceId = null)
         {
-            Guard.AgainstNullAndEmpty(nameof(serviceControlMetricsAddress), serviceControlMetricsAddress);
-            Guard.AgainstNegativeAndZero(nameof(interval), interval);
+            ArgumentException.ThrowIfNullOrWhiteSpace(serviceControlMetricsAddress);
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
 
             var reporting = ReportingOptions.Get(options);
 
@@ -32,6 +32,8 @@
         /// <param name="timeToBeReceived">Time to be received.</param>
         public static void SetServiceControlMetricsMessageTTBR(this MetricsOptions options, TimeSpan timeToBeReceived)
         {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(timeToBeReceived, TimeSpan.Zero);
+
             var reporting = ReportingOptions.Get(options);
 
             reporting.TimeToBeReceived = timeToBeReceived;
