@@ -1,5 +1,7 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
 {
+    using System.Text.Json;
+
     class EndpointMetadata
     {
         readonly string localAddress;
@@ -11,7 +13,7 @@
 
         public string ToJson()
         {
-            return SimpleJson.SerializeObject(new
+            return JsonSerializer.Serialize(new
             {
                 PluginVersion = 3,
                 LocalAddress = localAddress
