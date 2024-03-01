@@ -13,4 +13,8 @@
     <PackageReference Include="ServiceControl.Monitoring.Data" Version="3.0.0" PrivateAssets="All" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="NServiceBus.Metrics.ServiceControl.Tests" Key="$(NServiceBusTestsKey)" />
+  </ItemGroup>
+
 </Project>
