@@ -5,7 +5,9 @@
 
     class ReportingOptions
     {
+#pragma warning disable PS0025 // Dictionary keys should implement IEquatable<T> - Valid use of lookup-by-reference
         static readonly ConcurrentDictionary<MetricsOptions, ReportingOptions> reporting = new ConcurrentDictionary<MetricsOptions, ReportingOptions>();
+#pragma warning restore PS0025
         internal string ServiceControlMetricsAddress;
         internal TimeSpan ServiceControlReportingInterval;
         internal string EndpointInstanceIdOverride;
