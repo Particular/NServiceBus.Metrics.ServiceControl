@@ -12,7 +12,7 @@
         /// <param name="options">The metrics options configuration object.</param>
         /// <param name="serviceControlMetricsAddress">The transport address of the ServiceControl instance</param>
         /// <param name="interval">Maximum interval between consecutive reports. Recommended to use a value between 10 and 60 seconds. Metrics messages will be dispatched more frequently when the instance is under load.</param>
-        /// <param name="instanceId">Unique, human-readable, stable between restarts, identifier for running endpoint instance.</param>
+        /// <param name="instanceId">Only required if this instanceId needs to be different from the instance id added to all outgoing messages by NServiceBus core. Unique, human-readable, stable between restarts, identifier for running endpoint instance.</param>
         public static void SendMetricDataToServiceControl(this MetricsOptions options, string serviceControlMetricsAddress, TimeSpan interval, string instanceId = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(serviceControlMetricsAddress);
