@@ -40,7 +40,7 @@
                 .Done(ctx => ctx.WasCalled)
                 .Run();
 
-            Assert.True(context.WasCalled);
+            Assert.That(context.WasCalled, Is.True);
         }
 
         public class Context : ScenarioContext
