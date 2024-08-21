@@ -28,7 +28,7 @@
                 .WithEndpoint<MonitoringMock>()
                 .Run(TimeSpan.FromSeconds(10));
 
-            Assert.IsFalse(context.WasCalled);
+            Assert.That(context.WasCalled, Is.False);
         }
 
         [Test]
