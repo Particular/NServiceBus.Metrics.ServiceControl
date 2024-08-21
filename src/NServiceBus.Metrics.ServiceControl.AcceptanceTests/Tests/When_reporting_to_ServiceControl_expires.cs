@@ -28,7 +28,7 @@
                 .WithEndpoint<MonitoringMock>()
                 .Run(TimeSpan.FromSeconds(10));
 
-            Assert.IsFalse(context.WasCalled);
+            Assert.That(context.WasCalled, Is.False);
         }
 
         [Test]
@@ -40,7 +40,7 @@
                 .Done(ctx => ctx.WasCalled)
                 .Run();
 
-            Assert.True(context.WasCalled);
+            Assert.That(context.WasCalled, Is.True);
         }
 
         public class Context : ScenarioContext

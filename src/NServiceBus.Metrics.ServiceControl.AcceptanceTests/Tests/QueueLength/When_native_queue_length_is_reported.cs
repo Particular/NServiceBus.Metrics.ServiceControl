@@ -26,11 +26,11 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
             .Run(TimeSpan.FromSeconds(10))
             .ConfigureAwait(false);
 
-        Assert.IsNotNull(result.Message);
-        Assert.AreEqual("queue", result.Message.TagValue);
+        Assert.That(result.Message, Is.Not.Null);
+        Assert.That(result.Message.TagValue, Is.EqualTo("queue"));
         var entries = result.Message.Entries.Where(x => x.DateTicks > 0).ToArray();
-        Assert.Greater(entries.Length, 0, "There should be some reported values");
-        Assert.AreEqual(1, entries.Count(x => x.Value == 10), "A reported value should be 10");
+        Assert.That(entries, Is.Not.Empty, "There should be some reported values");
+        Assert.That(entries.Count(x => x.Value == 10), Is.EqualTo(1), "A reported value should be 10");
     }
 
     class Context : ScenarioContext
