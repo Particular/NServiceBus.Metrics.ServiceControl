@@ -26,7 +26,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
             .Run(TimeSpan.FromSeconds(10))
             .ConfigureAwait(false);
 
-        Assert.IsNotNull(result.Message);
+        Assert.That(result.Message, Is.Not.Null);
         Assert.That(result.Message.TagValue, Is.EqualTo("queue"));
         var entries = result.Message.Entries.Where(x => x.DateTicks > 0).ToArray();
         Assert.Greater(entries.Length, 0, "There should be some reported values");

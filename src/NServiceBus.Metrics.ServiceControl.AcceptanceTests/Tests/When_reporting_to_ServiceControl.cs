@@ -24,7 +24,7 @@
                 .Run()
                 .ConfigureAwait(false);
 
-            Assert.IsNotNull(context.Report);
+            Assert.That(context.Report, Is.Not.Null);
             Assert.That(context.Report.PluginVersion, Is.EqualTo(3));
             Assert.IsNotEmpty(context.Report.LocalAddress);
 
