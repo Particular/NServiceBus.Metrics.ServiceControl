@@ -25,12 +25,12 @@
                 .ConfigureAwait(false);
 
             Assert.IsNotNull(context.Report);
-            Assert.AreEqual(3, context.Report.PluginVersion);
+            Assert.That(context.Report.PluginVersion, Is.EqualTo(3));
             Assert.IsNotEmpty(context.Report.LocalAddress);
 
-            Assert.AreEqual(HostId.ToString("N"), context.Headers[Headers.OriginatingHostId]);
-            Assert.AreEqual("NServiceBus.Metrics.EndpointMetadataReport", context.Headers[Headers.EnclosedMessageTypes]);
-            Assert.AreEqual(ContentTypes.Json, context.Headers[Headers.ContentType]);
+            Assert.That(context.Headers[Headers.OriginatingHostId], Is.EqualTo(HostId.ToString("N")));
+            Assert.That(context.Headers[Headers.EnclosedMessageTypes], Is.EqualTo("NServiceBus.Metrics.EndpointMetadataReport"));
+            Assert.That(context.Headers[Headers.ContentType], Is.EqualTo(ContentTypes.Json));
         }
 
         class Context : ScenarioContext

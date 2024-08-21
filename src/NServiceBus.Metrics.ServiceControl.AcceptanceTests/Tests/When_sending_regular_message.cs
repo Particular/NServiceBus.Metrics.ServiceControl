@@ -20,7 +20,7 @@ public class When_sending_regular_message : NServiceBusAcceptanceTest
             .Run()
             .ConfigureAwait(false);
 
-        Assert.AreEqual(InstanceId, context.NServiceBus_Metric_InstanceId_Header_Value);
+        Assert.That(context.NServiceBus_Metric_InstanceId_Header_Value, Is.EqualTo(InstanceId));
     }
 
     class Context : ScenarioContext
