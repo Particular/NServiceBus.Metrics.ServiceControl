@@ -6,7 +6,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Features;
-    using global::ServiceControl.Monitoring.Data;
     using Hosting;
     using Logging;
     using MessageMutator;
@@ -17,7 +16,7 @@
     using Support;
     using Transport;
 
-    class ReportingFeature : Feature
+    sealed class ReportingFeature : Feature
     {
         public ReportingFeature()
         {

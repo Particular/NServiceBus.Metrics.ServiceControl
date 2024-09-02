@@ -1,7 +1,6 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl
 {
     using System.Collections.Generic;
-    using global::ServiceControl.Monitoring.Data;
 
     /// <summary>
     /// Reports native queue length to ServiceControl Monitoring
@@ -19,24 +18,17 @@
         IEnumerable<string> MonitoredQueues { get; }
     }
 
-    class QueueLengthBufferReporter : IReportNativeQueueLength
+    sealed class QueueLengthBufferReporter(
+        RingBuffer buffer,
+        TaggedLongValueWriterV1 writer,
+        params string[] monitoredQueues)
+        : IReportNativeQueueLength
     {
-        RingBuffer buffer;
-        TaggedLongValueWriterV1 writer;
-        string[] monitoredQueues;
-
-        public QueueLengthBufferReporter(RingBuffer buffer, TaggedLongValueWriterV1 writer, params string[] monitoredQueues)
-        {
-            this.buffer = buffer;
-            this.writer = writer;
-            this.monitoredQueues = monitoredQueues;
-        }
-
         public void ReportQueueLength(string physicalQueueName, long queueLength)
         {
             var tag = writer.GetTagId(physicalQueueName);
 
-            RingBufferExtensions.WriteTaggedValue(buffer, "QueueLength", queueLength, tag);
+            buffer.WriteTaggedValue("QueueLength", queueLength, tag);
         }
 
         public IEnumerable<string> MonitoredQueues => monitoredQueues;
