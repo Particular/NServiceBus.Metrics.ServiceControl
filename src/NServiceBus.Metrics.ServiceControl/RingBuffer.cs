@@ -96,7 +96,7 @@
             }
 
             onChunk(new ArraySegment<Entry>(entries, indexStart, length));
-            Array.Clear(entries, indexStart, length);
+            entries.AsSpan(indexStart, length).Clear();
 
             Interlocked.Add(ref nextToConsume, length);
             return length;
