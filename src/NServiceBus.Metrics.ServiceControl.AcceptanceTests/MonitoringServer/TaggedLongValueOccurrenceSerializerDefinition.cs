@@ -11,9 +11,7 @@
     class TaggedLongValueWriterOccurrenceSerializerDefinition : SerializationDefinition
     {
         public override Func<IMessageMapper, IMessageSerializer> Configure(IReadOnlySettings settings)
-        {
-            return mapper => new TaggedLongValueSerializer();
-        }
+            => _ => new TaggedLongValueSerializer();
     }
 
     class ReadOnlyStream : Stream
@@ -58,12 +56,9 @@
 
     class TaggedLongValueSerializer : IMessageSerializer
     {
-        static readonly object[] NoMessages = new object[0];
+        static readonly object[] NoMessages = [];
 
-        public void Serialize(object message, Stream stream)
-        {
-            throw new NotImplementedException();
-        }
+        public void Serialize(object message, Stream stream) => throw new NotImplementedException();
 
         // 0                   1                   2                   3
         // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
