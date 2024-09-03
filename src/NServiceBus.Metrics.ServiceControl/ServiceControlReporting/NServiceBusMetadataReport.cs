@@ -42,7 +42,7 @@
             }
             catch (Exception ex) when (!ex.IsCausedBy(cancellationToken))
             {
-                log.Error($"Error while sending metric data to {destination.Destination}.", ex);
+                Log.Error($"Error while sending metric data to {destination.Destination}.", ex);
             }
         }
 
@@ -52,6 +52,6 @@
         readonly EndpointMetadata endpointMetadata;
         readonly TimeSpan timeToBeReceived;
 
-        static ILog log = LogManager.GetLogger<NServiceBusMetadataReport>();
+        static readonly ILog Log = LogManager.GetLogger<NServiceBusMetadataReport>();
     }
 }

@@ -11,10 +11,10 @@
         void Clear()
         {
             Index = InitialIndex;
-            Array.Clear(Entries, 0, MaxEntries);
+            Entries.AsSpan(0, MaxEntries).Clear();
         }
 
-        public Entry[] Entries = new Entry[MaxEntries];
+        public readonly Entry[] Entries = new Entry[MaxEntries];
 
         protected int Index = InitialIndex;
         public const int MaxEntries = 512;
