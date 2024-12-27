@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="NServiceBus.AcceptanceTesting" Version="9.1.2" />
-    <PackageReference Include="NServiceBus.Metrics" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup>
