@@ -58,7 +58,7 @@
             {
                 EndpointSetup<DefaultServer>(c =>
                 {
-                    c.UseSerialization<NewtonsoftJsonSerializer>();
+                    c.UseSerialization<SystemJsonSerializer>();
                     c.LimitMessageProcessingConcurrencyTo(1);
                 }).IncludeType<EndpointMetadataReport>();
             }
