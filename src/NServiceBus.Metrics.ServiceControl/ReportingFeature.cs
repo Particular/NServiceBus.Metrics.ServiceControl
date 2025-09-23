@@ -42,10 +42,7 @@
                 {
                     var reportingOptions = ReportingOptions.Get(options);
                     settings.Set("NServiceBus.Metrics.ServiceControl.MetricsAddress", reportingOptions.ServiceControlMetricsAddress);
-                    if (settings.TryGet<ManifestItems>(out var manifest))
-                    {
-                        manifest.Add("monitoringQueue", reportingOptions.ServiceControlMetricsAddress);
-                    }
+                    settings.AddStartupDiagnosticsSection("Manifest-MonitoringQueue", reportingOptions.ServiceControlMetricsAddress);
                 }
             });
         }
