@@ -34,6 +34,17 @@
                 var address = reportingOptions.ServiceControlMetricsAddress;
                 return string.IsNullOrEmpty(address) == false;
             }, $"Reporting is enabled by calling '{nameof(MetricsOptionsExtensions.SendMetricDataToServiceControl)}'");
+
+            Defaults(settings =>
+            {
+                var options = settings.GetOrDefault<MetricsOptions>();
+                if (options != null)
+                {
+                    var reportingOptions = ReportingOptions.Get(options);
+                    settings.Set("NServiceBus.Metrics.ServiceControl.MetricsAddress", reportingOptions.ServiceControlMetricsAddress);
+                    settings.AddStartupDiagnosticsSection("Manifest-MonitoringQueue", reportingOptions.ServiceControlMetricsAddress);
+                }
+            });
         }
 
         protected override void Setup(FeatureConfigurationContext context)
