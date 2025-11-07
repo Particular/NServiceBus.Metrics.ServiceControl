@@ -1,6 +1,8 @@
 ﻿namespace NServiceBus
 {
     using System;
+    using Configuration.AdvancedExtensibility;
+    using Features;
     using Metrics.ServiceControl;
 
     /// <summary>Provides configuration options for Metrics feature</summary>
@@ -23,6 +25,8 @@
             reporting.ServiceControlMetricsAddress = serviceControlMetricsAddress;
             reporting.ServiceControlReportingInterval = interval;
             reporting.EndpointInstanceIdOverride = instanceId;
+
+            options.GetSettings().EnableFeature<ReportingFeature>();
         }
 
         /// <summary>

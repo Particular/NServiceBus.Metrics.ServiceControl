@@ -20,7 +20,6 @@
     {
         public ReportingFeature()
         {
-            EnableByDefault();
             DependsOn<MetricsFeature>();
             Prerequisite(ctx =>
             {
