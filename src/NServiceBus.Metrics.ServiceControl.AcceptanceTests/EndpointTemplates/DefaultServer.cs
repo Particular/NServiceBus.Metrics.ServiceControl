@@ -1,46 +1,29 @@
-﻿namespace NServiceBus.AcceptanceTests.EndpointTemplates
+﻿namespace NServiceBus.AcceptanceTests.EndpointTemplates;
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+using AcceptanceTesting.Customization;
+using AcceptanceTesting.Support;
+
+public class DefaultServer : IEndpointSetupTemplate
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Threading.Tasks;
-    using AcceptanceTesting.Customization;
-    using AcceptanceTesting.Support;
-
-    public class DefaultServer : IEndpointSetupTemplate
+    public async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointConfiguration, Func<EndpointConfiguration, Task> configurationBuilderCustomization)
     {
-        public DefaultServer()
-        {
-            typesToInclude = [];
-        }
+        var configuration = new EndpointConfiguration(endpointConfiguration.EndpointName);
 
-        public DefaultServer(List<Type> typesToInclude)
-        {
-            this.typesToInclude = typesToInclude;
-        }
+        configuration.ScanTypesForTest(endpointConfiguration);
 
-        public async Task<EndpointConfiguration> GetConfiguration(RunDescriptor runDescriptor, EndpointCustomizationConfiguration endpointConfiguration, Func<EndpointConfiguration, Task> configurationBuilderCustomization)
-        {
-            var types = endpointConfiguration.GetTypesScopedByTestClass();
+        var storageDir = Path.Combine(NServiceBusAcceptanceTest.StorageRootDir, NUnit.Framework.TestContext.CurrentContext.Test.ID);
 
-            typesToInclude.AddRange(types);
+        configuration.UseSerialization<SystemJsonSerializer>();
+        configuration.UseTransport(new LearningTransport { StorageDirectory = storageDir });
 
-            var configuration = new EndpointConfiguration(endpointConfiguration.EndpointName);
+        configuration.RegisterComponentsAndInheritanceHierarchy(runDescriptor);
 
-            configuration.TypesToIncludeInScan(typesToInclude);
+        await configurationBuilderCustomization(configuration);
 
-            var storageDir = Path.Combine(NServiceBusAcceptanceTest.StorageRootDir, NUnit.Framework.TestContext.CurrentContext.Test.ID);
-
-            configuration.UseSerialization<SystemJsonSerializer>();
-            configuration.UseTransport(new LearningTransport { StorageDirectory = storageDir });
-
-            configuration.RegisterComponentsAndInheritanceHierarchy(runDescriptor);
-
-            await configurationBuilderCustomization(configuration);
-
-            return configuration;
-        }
-
-        List<Type> typesToInclude;
+        return configuration;
     }
 }
