@@ -28,37 +28,29 @@
 
             tokenSource.CancelAfter(TimeSpan.FromSeconds(10));
 
-            Context context = null;
             try
             {
-                context = await Scenario.Define<Context>()
+                await Scenario.Define<Context>()
                     .WithEndpoint<MonitoringMock>()
                     .Run(tokenSource.Token);
+
+                Assert.Fail("Should have thrown exception");
             }
 #pragma warning disable PS0020
-            catch (OperationCanceledException ex) when (ex.CancellationToken == tokenSource.Token && tokenSource.IsCancellationRequested)
+            catch (TaskCanceledException)
 #pragma warning restore PS0020
             {
-                Assert.That(context?.WasCalled, Is.False);
             }
         }
 
         [Test]
-        public async Task Should_report_when_ttbr_not_breached()
-        {
-            var context = await Scenario.Define<Context>()
+        public async Task Should_report_when_ttbr_not_breached() =>
+            await Scenario.Define<Context>()
                 .WithEndpoint<Sender>(b => b.When(s => s.SendLocal(new MyMessage())))
                 .WithEndpoint<MonitoringMock>()
-                .Done(ctx => ctx.WasCalled)
                 .Run();
 
-            Assert.That(context.WasCalled, Is.True);
-        }
-
-        public class Context : ScenarioContext
-        {
-            public bool WasCalled { get; set; }
-        }
+        public class Context : ScenarioContext;
 
         class Sender : EndpointConfigurationBuilder
         {
@@ -94,7 +86,7 @@
             {
                 public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
-                    testContext.WasCalled = true;
+                    testContext.MarkAsCompleted();
                     return Task.CompletedTask;
                 }
             }
