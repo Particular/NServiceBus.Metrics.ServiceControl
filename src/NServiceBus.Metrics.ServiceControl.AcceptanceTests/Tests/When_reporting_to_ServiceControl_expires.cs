@@ -1,6 +1,7 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl.Tests
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using AcceptanceTesting;
     using AcceptanceTesting.Customization;
@@ -19,40 +20,41 @@
         {
             await Scenario.Define<Context>()
                 .WithEndpoint<Sender>(b => b.When(s => s.SendLocal(new MyMessage())))
-                .Done(ctx => ctx.MessageProcessedBySender)
                 .Run();
 
             await Task.Delay(TTBR + TTBR);
 
-            var context = await Scenario.Define<Context>()
-                .WithEndpoint<MonitoringMock>()
-                .Run(TimeSpan.FromSeconds(10));
+            using var tokenSource = new CancellationTokenSource();
 
-            Assert.That(context.WasCalled, Is.False);
+            tokenSource.CancelAfter(TimeSpan.FromSeconds(10));
+
+            try
+            {
+                await Scenario.Define<Context>()
+                    .WithEndpoint<MonitoringMock>()
+                    .Run(tokenSource.Token);
+
+                Assert.Fail("Should have thrown exception");
+            }
+#pragma warning disable PS0020
+            catch (TaskCanceledException)
+#pragma warning restore PS0020
+            {
+            }
         }
 
         [Test]
-        public async Task Should_report_when_ttbr_not_breached()
-        {
-            var context = await Scenario.Define<Context>()
+        public async Task Should_report_when_ttbr_not_breached() =>
+            await Scenario.Define<Context>()
                 .WithEndpoint<Sender>(b => b.When(s => s.SendLocal(new MyMessage())))
                 .WithEndpoint<MonitoringMock>()
-                .Done(ctx => ctx.WasCalled)
                 .Run();
 
-            Assert.That(context.WasCalled, Is.True);
-        }
-
-        public class Context : ScenarioContext
-        {
-            public bool MessageProcessedBySender { get; set; }
-            public bool WasCalled { get; set; }
-        }
+        public class Context : ScenarioContext;
 
         class Sender : EndpointConfigurationBuilder
         {
-            public Sender()
-            {
+            public Sender() =>
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.UniquelyIdentifyRunningInstance().UsingCustomIdentifier(HostId);
@@ -60,54 +62,36 @@
                     metrics.SendMetricDataToServiceControl(MonitoringSpyAddress, TimeSpan.FromSeconds(1));
                     metrics.SetServiceControlMetricsMessageTTBR(TTBR);
                 });
-            }
 
-            public class MyMessageHandler : IHandleMessages<MyMessage>
+            public class MyMessageHandler(Context testContext) : IHandleMessages<MyMessage>
             {
-                Context testContext;
-
-                public MyMessageHandler(Context context)
-                {
-                    testContext = context;
-                }
-
                 public async Task Handle(MyMessage message, IMessageHandlerContext context)
                 {
                     await Task.Delay(100);
-                    testContext.MessageProcessedBySender = true;
+                    testContext.MarkAsCompleted();
                 }
             }
         }
 
         public class MonitoringMock : EndpointConfigurationBuilder
         {
-            public MonitoringMock()
-            {
+            public MonitoringMock() =>
                 EndpointSetup<DefaultServer>(c =>
                 {
                     c.UseSerialization<SystemJsonSerializer>();
                     c.LimitMessageProcessingConcurrencyTo(1);
                 }).IncludeType<EndpointMetadataReport>();
-            }
 
-            public class MetricHandler : IHandleMessages<EndpointMetadataReport>
+            public class MetricHandler(Context testContext) : IHandleMessages<EndpointMetadataReport>
             {
-                Context testContext;
-
-                public MetricHandler(Context context)
-                {
-                    testContext = context;
-                }
-
                 public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
                 {
-                    testContext.WasCalled = true;
+                    testContext.MarkAsCompleted();
                     return Task.CompletedTask;
                 }
             }
         }
 
-        public class MyMessage : IMessage
-        { }
+        public class MyMessage : IMessage;
     }
 }

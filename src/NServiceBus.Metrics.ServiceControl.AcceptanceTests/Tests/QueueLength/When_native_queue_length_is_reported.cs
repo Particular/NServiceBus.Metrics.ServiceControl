@@ -22,9 +22,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
         var result = await Scenario.Define<Context>()
             .WithEndpoint<EndpointWithNativeQueueLengthSupport>()
             .WithEndpoint<MonitoringSpy>()
-            .Done(c => c.QueueLengthReportReceived)
-            .Run(TimeSpan.FromSeconds(10))
-            .ConfigureAwait(false);
+            .Run();
 
         Assert.That(result.Message, Is.Not.Null);
         Assert.That(result.Message.TagValue, Is.EqualTo("queue"));
@@ -35,14 +33,12 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
 
     class Context : ScenarioContext
     {
-        public bool QueueLengthReportReceived { get; set; }
         public TaggedLongValueOccurrence Message { get; set; }
     }
 
     class EndpointWithNativeQueueLengthSupport : EndpointConfigurationBuilder
     {
-        public EndpointWithNativeQueueLengthSupport()
-        {
+        public EndpointWithNativeQueueLengthSupport() =>
             EndpointSetup<DefaultServer>(c =>
             {
                 var monitoringSpyAddress = Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
@@ -50,30 +46,16 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
                 c.EnableMetrics().SendMetricDataToServiceControl(monitoringSpyAddress, TimeSpan.FromSeconds(1));
                 c.EnableFeature<NativeQueueLengthFeature>();
             });
-        }
 
         class NativeQueueLengthFeature : Feature
         {
-            public NativeQueueLengthFeature()
-            {
-                DependsOn("NServiceBus.Metrics.ServiceControl.ReportingFeature");
-            }
+            public NativeQueueLengthFeature() => DependsOn("NServiceBus.Metrics.ServiceControl.ReportingFeature");
 
-            protected override void Setup(FeatureConfigurationContext context)
-            {
-                context.RegisterStartupTask(b => new NativeQueueLengthReporter(b.GetRequiredService<IReportNativeQueueLength>()));
-            }
+            protected override void Setup(FeatureConfigurationContext context) => context.RegisterStartupTask(b => new NativeQueueLengthReporter(b.GetRequiredService<IReportNativeQueueLength>()));
         }
 
-        class NativeQueueLengthReporter : FeatureStartupTask
+        class NativeQueueLengthReporter(IReportNativeQueueLength queueLengthReporter) : FeatureStartupTask
         {
-            IReportNativeQueueLength queueLengthReporter;
-
-            public NativeQueueLengthReporter(IReportNativeQueueLength queueLengthReporter)
-            {
-                this.queueLengthReporter = queueLengthReporter;
-            }
-
             protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
             {
                 queueLengthReporter.ReportQueueLength("queue", 10);
@@ -81,50 +63,35 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
                 return Task.CompletedTask;
             }
 
-            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default)
-            {
-                return Task.CompletedTask;
-            }
+            protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default) => Task.CompletedTask;
         }
     }
 
 
     class MonitoringSpy : EndpointConfigurationBuilder
     {
-        public MonitoringSpy()
-        {
+        public MonitoringSpy() =>
             EndpointSetup<DefaultServer>(c =>
             {
                 c.UseSerialization<SystemJsonSerializer>();
                 c.AddDeserializer<TaggedLongValueWriterOccurrenceSerializerDefinition>();
                 c.LimitMessageProcessingConcurrencyTo(1);
             }).IncludeType<EndpointMetadataReport>().IncludeType<TaggedLongValueOccurrence>();
-        }
 
-        class MessageHandler : IHandleMessages<TaggedLongValueOccurrence>, IHandleMessages<EndpointMetadataReport>
+        class MessageHandler(Context testContext) : IHandleMessages<TaggedLongValueOccurrence>, IHandleMessages<EndpointMetadataReport>
         {
-            Context testContext;
-
-            public MessageHandler(Context context)
-            {
-                testContext = context;
-            }
-
             public Task Handle(TaggedLongValueOccurrence message, IMessageHandlerContext context)
             {
                 if (context.MessageHeaders.TryGetValue("NServiceBus.Metric.Type", out var metricType) && metricType == "QueueLength")
                 {
                     testContext.Message = message;
-                    testContext.QueueLengthReportReceived = true;
+                    testContext.MarkAsCompleted();
                 }
 
                 return Task.CompletedTask;
             }
 
-            public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
-            {
-                return Task.CompletedTask;
-            }
+            public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context) => Task.CompletedTask;
         }
     }
 }
