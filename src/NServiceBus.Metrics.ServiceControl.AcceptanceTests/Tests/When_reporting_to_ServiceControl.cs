@@ -1,87 +1,78 @@
-﻿namespace NServiceBus.Metrics.AcceptanceTests
+﻿namespace NServiceBus.AcceptanceTests;
+
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using AcceptanceTesting;
+using AcceptanceTesting.Customization;
+using Metrics;
+using EndpointTemplates;
+using NUnit.Framework;
+
+public class When_reporting_to_ServiceControl : NServiceBusAcceptanceTest
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using AcceptanceTesting;
-    using AcceptanceTesting.Customization;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
-    using NUnit.Framework;
+    static string MonitoringSpyAddress => Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
+    static readonly Guid HostId = Guid.NewGuid();
 
-    public class When_reporting_to_ServiceControl : NServiceBusAcceptanceTest
+    [Test]
+    public async Task Should_send_metadata_to_configured_queue()
     {
-        static string MonitoringSpyAddress => Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
-        static Guid HostId = Guid.NewGuid();
+        var context = await Scenario.Define<Context>()
+            .WithEndpoint<Sender>()
+            .WithEndpoint<MonitoringSpy>()
+            .Done(c => c.Report != null)
+            .Run()
+            .ConfigureAwait(false);
 
-        [Test]
-        public async Task Should_send_metadata_to_configured_queue()
+        Assert.That(context.Report, Is.Not.Null);
+        Assert.Multiple(() =>
         {
-            var context = await Scenario.Define<Context>()
-                .WithEndpoint<Sender>()
-                .WithEndpoint<MonitoringSpy>()
-                .Done(c => c.Report != null)
-                .Run()
-                .ConfigureAwait(false);
+            Assert.That(context.Report.PluginVersion, Is.EqualTo(3));
+            Assert.That(context.Report.LocalAddress, Is.Not.Empty);
 
-            Assert.That(context.Report, Is.Not.Null);
-            Assert.Multiple(() =>
+            Assert.That(context.Headers[Headers.OriginatingHostId], Is.EqualTo(HostId.ToString("N")));
+            Assert.That(context.Headers[Headers.EnclosedMessageTypes], Is.EqualTo("NServiceBus.Metrics.EndpointMetadataReport"));
+            Assert.That(context.Headers[Headers.ContentType], Is.EqualTo(ContentTypes.Json));
+        });
+    }
+
+    public class Context : ScenarioContext
+    {
+        public EndpointMetadataReport Report { get; set; }
+
+        public IReadOnlyDictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
+    }
+
+    class Sender : EndpointConfigurationBuilder
+    {
+        public Sender()
+        {
+            EndpointSetup<DefaultServer>(c =>
             {
-                Assert.That(context.Report.PluginVersion, Is.EqualTo(3));
-                Assert.That(context.Report.LocalAddress, Is.Not.Empty);
-
-                Assert.That(context.Headers[Headers.OriginatingHostId], Is.EqualTo(HostId.ToString("N")));
-                Assert.That(context.Headers[Headers.EnclosedMessageTypes], Is.EqualTo("NServiceBus.Metrics.EndpointMetadataReport"));
-                Assert.That(context.Headers[Headers.ContentType], Is.EqualTo(ContentTypes.Json));
+                c.UniquelyIdentifyRunningInstance().UsingCustomIdentifier(HostId);
+                c.EnableMetrics().SendMetricDataToServiceControl(MonitoringSpyAddress, TimeSpan.FromSeconds(1));
             });
         }
+    }
 
-        class Context : ScenarioContext
-        {
-            public EndpointMetadataReport Report { get; set; }
-
-            public IReadOnlyDictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
-        }
-
-        class Sender : EndpointConfigurationBuilder
-        {
-            public Sender()
+    public class MonitoringSpy : EndpointConfigurationBuilder
+    {
+        public MonitoringSpy() =>
+            EndpointSetup<DefaultServer>(c =>
             {
-                EndpointSetup<DefaultServer>(c =>
-                {
-                    c.UniquelyIdentifyRunningInstance().UsingCustomIdentifier(HostId);
-                    c.EnableMetrics().SendMetricDataToServiceControl(MonitoringSpyAddress, TimeSpan.FromSeconds(1));
-                });
-            }
-        }
+                c.UseSerialization<SystemJsonSerializer>();
+                c.LimitMessageProcessingConcurrencyTo(1);
+            }).IncludeType<EndpointMetadataReport>();
 
-        class MonitoringSpy : EndpointConfigurationBuilder
+        [Handler]
+        public class MetricHandler(Context testContext) : IHandleMessages<EndpointMetadataReport>
         {
-            public MonitoringSpy()
+            public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
             {
-                EndpointSetup<DefaultServer>(c =>
-                {
-                    c.UseSerialization<SystemJsonSerializer>();
-                    c.LimitMessageProcessingConcurrencyTo(1);
-                }).IncludeType<EndpointMetadataReport>();
-            }
+                testContext.Report = message;
+                testContext.Headers = context.MessageHeaders;
 
-            public class MetricHandler : IHandleMessages<EndpointMetadataReport>
-            {
-                Context testContext;
-
-                public MetricHandler(Context context)
-                {
-                    testContext = context;
-                }
-
-                public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
-                {
-                    testContext.Report = message;
-                    testContext.Headers = context.MessageHeaders;
-
-                    return Task.CompletedTask;
-                }
+                return Task.CompletedTask;
             }
         }
     }

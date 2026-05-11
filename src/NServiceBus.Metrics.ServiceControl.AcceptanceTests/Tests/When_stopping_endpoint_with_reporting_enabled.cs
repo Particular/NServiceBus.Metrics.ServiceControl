@@ -1,65 +1,57 @@
-namespace NServiceBus.Metrics.AcceptanceTests
+namespace NServiceBus.AcceptanceTests;
+
+using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using AcceptanceTesting;
+using AcceptanceTesting.Customization;
+using EndpointTemplates;
+using Metrics;
+using NUnit.Framework;
+
+public class When_stopping_endpoint_with_reporting_enabled : NServiceBusAcceptanceTest
 {
-    using System;
-    using System.Diagnostics;
-    using System.Threading.Tasks;
-    using AcceptanceTesting;
-    using AcceptanceTesting.Customization;
-    using NServiceBus.AcceptanceTests;
-    using NServiceBus.AcceptanceTests.EndpointTemplates;
-    using NUnit.Framework;
+    static string MonitoringSpyAddress => Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
+    static readonly TimeSpan SendInterval = TimeSpan.FromSeconds(30);
 
-    public class When_stopping_endpoint_with_reporting_enabled : NServiceBusAcceptanceTest
+    [Test]
+    public async Task Should_not_delay_endpoint_stop()
     {
-        static string MonitoringSpyAddress => Conventions.EndpointNamingConvention(typeof(MonitoringSpy));
-        static TimeSpan SendInterval = TimeSpan.FromSeconds(30);
+        var stopWatch = Stopwatch.StartNew();
 
-        [Test]
-        public async Task Should_not_delay_endpoint_stop()
-        {
-            var stopWatch = Stopwatch.StartNew();
+        await Scenario.Define<ScenarioContext>()
+            .WithEndpoint<Sender>()
+            .WithEndpoint<MonitoringSpy>()
+            .Done(c => c.EndpointsStarted)
+            .Run();
 
-            await Scenario.Define<ScenarioContext>()
-                .WithEndpoint<Sender>()
-                .WithEndpoint<MonitoringSpy>()
-                .Done(c => c.EndpointsStarted)
-                .Run()
-                .ConfigureAwait(false);
+        stopWatch.Stop();
 
-            stopWatch.Stop();
+        Assert.That(stopWatch.Elapsed, Is.LessThan(SendInterval));
+    }
 
-            Assert.That(stopWatch.Elapsed, Is.LessThan(SendInterval));
-        }
-
-        class Sender : EndpointConfigurationBuilder
-        {
-            public Sender()
+    class Sender : EndpointConfigurationBuilder
+    {
+        public Sender() =>
+            EndpointSetup<DefaultServer>(c =>
             {
-                EndpointSetup<DefaultServer>(c =>
-                {
-                    c.EnableMetrics().SendMetricDataToServiceControl(MonitoringSpyAddress, SendInterval);
-                });
-            }
-        }
+                c.EnableMetrics().SendMetricDataToServiceControl(MonitoringSpyAddress, SendInterval);
+            });
+    }
 
-        class MonitoringSpy : EndpointConfigurationBuilder
+    public class MonitoringSpy : EndpointConfigurationBuilder
+    {
+        public MonitoringSpy() =>
+            EndpointSetup<DefaultServer>(c =>
+            {
+                c.UseSerialization<SystemJsonSerializer>();
+                c.LimitMessageProcessingConcurrencyTo(1);
+            }).IncludeType<EndpointMetadataReport>();
+
+        [Handler]
+        public class MetricHandler : IHandleMessages<EndpointMetadataReport>
         {
-            public MonitoringSpy()
-            {
-                EndpointSetup<DefaultServer>(c =>
-                {
-                    c.UseSerialization<SystemJsonSerializer>();
-                    c.LimitMessageProcessingConcurrencyTo(1);
-                }).IncludeType<EndpointMetadataReport>();
-            }
-
-            public class MetricHandler : IHandleMessages<EndpointMetadataReport>
-            {
-                public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context)
-                {
-                    return Task.CompletedTask;
-                }
-            }
+            public Task Handle(EndpointMetadataReport message, IMessageHandlerContext context) => Task.CompletedTask;
         }
     }
 }
