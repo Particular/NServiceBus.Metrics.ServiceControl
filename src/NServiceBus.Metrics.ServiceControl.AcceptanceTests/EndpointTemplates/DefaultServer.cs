@@ -20,8 +20,6 @@ public class DefaultServer : IEndpointSetupTemplate
         configuration.UseSerialization<SystemJsonSerializer>();
         configuration.UseTransport(new LearningTransport { StorageDirectory = storageDir });
 
-        runDescriptor.Services.AddScenarioContext(runDescriptor.ScenarioContext);
-
         await configurationBuilderCustomization(configuration);
 
         return configuration;
