@@ -1,18 +1,10 @@
 ﻿namespace NServiceBus.Metrics.ServiceControl.ServiceControlReporting
 {
-    using System.Text.Json;
-
-    class EndpointMetadata
+    sealed class EndpointMetadata(string localAddress)
     {
-        readonly string localAddress;
-
-        public EndpointMetadata(string localAddress) => this.localAddress = localAddress;
-
-        public string ToJson() =>
-            JsonSerializer.Serialize(new
-            {
-                PluginVersion = 3,
-                LocalAddress = localAddress
-            });
+#pragma warning disable CA1822
+        public int PluginVersion => 3;
+#pragma warning restore CA1822
+        public string LocalAddress { get; private init; } = localAddress;
     }
 }
