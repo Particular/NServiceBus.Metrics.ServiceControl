@@ -1,56 +1,55 @@
-﻿namespace NServiceBus.Metrics.ServiceControl.Tests
+﻿namespace NServiceBus.Metrics.ServiceControl.Tests;
+
+using NServiceBus.Metrics.ServiceControl;
+using NUnit.Framework;
+
+public class LongValueWriterTests : WriterTestBase
 {
-    using NServiceBus.Metrics.ServiceControl;
-    using NUnit.Framework;
+    public LongValueWriterTests() => SetWriter(LongValueWriterV1.Write);
 
-    public class LongValueWriterTests : WriterTestBase
+    [Test]
+    public void Writing_one_value()
     {
-        public LongValueWriterTests() => SetWriter(LongValueWriterV1.Write);
+        const long version = 1L;
+        const long ticks = 2;
+        const long value = 3;
 
-        [Test]
-        public void Writing_one_value()
+        var entry = new RingBuffer.Entry { Ticks = ticks, Value = value };
+        Write(entry);
+
+        Assert(writer =>
         {
-            const long version = 1L;
-            const long ticks = 2;
-            const long value = 3;
+            writer.Write(version);
+            writer.Write(ticks);
+            writer.Write(1);
+            writer.Write(0);
+            writer.Write(value);
+        });
+    }
 
-            var entry = new RingBuffer.Entry { Ticks = ticks, Value = value };
-            Write(entry);
+    [Test]
+    public void Writing_two_values_sorted_by_date()
+    {
+        const long version = 1L;
+        const long ticks = 2;
+        const long value1 = 3;
+        const long value2 = value1 + 1;
+        const int timeDiff = 1;
 
-            Assert(writer =>
-            {
-                writer.Write(version);
-                writer.Write(ticks);
-                writer.Write(1);
-                writer.Write(0);
-                writer.Write(value);
-            });
-        }
+        Write(
+            new RingBuffer.Entry(ticks + timeDiff, value2),
+            new RingBuffer.Entry(ticks, value1)
+        );
 
-        [Test]
-        public void Writing_two_values_sorted_by_date()
+        Assert(writer =>
         {
-            const long version = 1L;
-            const long ticks = 2;
-            const long value1 = 3;
-            const long value2 = value1 + 1;
-            const int timeDiff = 1;
-
-            Write(
-                new RingBuffer.Entry(ticks + timeDiff, value2),
-                new RingBuffer.Entry(ticks, value1)
-                );
-
-            Assert(writer =>
-            {
-                writer.Write(version);
-                writer.Write(ticks);
-                writer.Write(2);
-                writer.Write(0);
-                writer.Write(value1);
-                writer.Write(timeDiff);
-                writer.Write(value2);
-            });
-        }
+            writer.Write(version);
+            writer.Write(ticks);
+            writer.Write(2);
+            writer.Write(0);
+            writer.Write(value1);
+            writer.Write(timeDiff);
+            writer.Write(value2);
+        });
     }
 }

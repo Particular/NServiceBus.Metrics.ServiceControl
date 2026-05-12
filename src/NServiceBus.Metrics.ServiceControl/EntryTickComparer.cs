@@ -1,13 +1,12 @@
-﻿namespace NServiceBus.Metrics.ServiceControl
+﻿namespace NServiceBus.Metrics.ServiceControl;
+
+using System.Collections.Generic;
+
+sealed class EntryTickComparer : IComparer<RingBuffer.Entry>
 {
-    using System.Collections.Generic;
+    public static readonly EntryTickComparer Instance = new EntryTickComparer();
 
-    sealed class EntryTickComparer : IComparer<RingBuffer.Entry>
-    {
-        public static readonly EntryTickComparer Instance = new EntryTickComparer();
+    EntryTickComparer() { }
 
-        EntryTickComparer() { }
-
-        public int Compare(RingBuffer.Entry x, RingBuffer.Entry y) => x.Ticks.CompareTo(y.Ticks);
-    }
+    public int Compare(RingBuffer.Entry x, RingBuffer.Entry y) => x.Ticks.CompareTo(y.Ticks);
 }

@@ -1,50 +1,49 @@
-﻿namespace NServiceBus.Metrics.ServiceControl.Tests
+﻿namespace NServiceBus.Metrics.ServiceControl.Tests;
+
+using NServiceBus.Metrics.ServiceControl;
+using NUnit.Framework;
+
+public class OccurrenceWriterTests : WriterTestBase
 {
-    using NServiceBus.Metrics.ServiceControl;
-    using NUnit.Framework;
+    public OccurrenceWriterTests() => SetWriter(OccurrenceWriterV1.Write);
 
-    public class OccurrenceWriterTests : WriterTestBase
+    [Test]
+    public void Writing_one_value()
     {
-        public OccurrenceWriterTests() => SetWriter(OccurrenceWriterV1.Write);
+        const long version = 1L;
+        const long ticks = 2;
 
-        [Test]
-        public void Writing_one_value()
+        var entry = new RingBuffer.Entry { Ticks = ticks, Value = 23544345345 };
+        Write(entry);
+
+        Assert(writer =>
         {
-            const long version = 1L;
-            const long ticks = 2;
+            writer.Write(version);
+            writer.Write(ticks);
+            writer.Write(1);
+            writer.Write(0);
+        });
+    }
 
-            var entry = new RingBuffer.Entry { Ticks = ticks, Value = 23544345345 };
-            Write(entry);
+    [Test]
+    public void Writing_two_values_sorted_by_date()
+    {
+        const long version = 1L;
+        const long ticks = 2;
+        const int timeDiff = 1;
 
-            Assert(writer =>
-            {
-                writer.Write(version);
-                writer.Write(ticks);
-                writer.Write(1);
-                writer.Write(0);
-            });
-        }
+        Write(
+            new RingBuffer.Entry(ticks + timeDiff, 8902374857238758343),
+            new RingBuffer.Entry(ticks, 390489580934859034)
+        );
 
-        [Test]
-        public void Writing_two_values_sorted_by_date()
+        Assert(writer =>
         {
-            const long version = 1L;
-            const long ticks = 2;
-            const int timeDiff = 1;
-
-            Write(
-                new RingBuffer.Entry(ticks + timeDiff, 8902374857238758343),
-                new RingBuffer.Entry(ticks, 390489580934859034)
-            );
-
-            Assert(writer =>
-            {
-                writer.Write(version);
-                writer.Write(ticks);
-                writer.Write(2);
-                writer.Write(0);
-                writer.Write(timeDiff);
-            });
-        }
+            writer.Write(version);
+            writer.Write(ticks);
+            writer.Write(2);
+            writer.Write(0);
+            writer.Write(timeDiff);
+        });
     }
 }
