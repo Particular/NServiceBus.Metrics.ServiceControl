@@ -1,14 +1,15 @@
-﻿using System;
+﻿namespace NServiceBus.AcceptanceTests;
+
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using NServiceBus;
-using NServiceBus.AcceptanceTesting;
-using NServiceBus.AcceptanceTests;
-using NServiceBus.AcceptanceTests.EndpointTemplates;
-using NServiceBus.Features;
-using NServiceBus.Metrics;
+using AcceptanceTesting;
+using EndpointTemplates;
+using Features;
+using Metrics;
 using NServiceBus.Metrics.ServiceControl;
 using NUnit.Framework;
 using ServiceControl.Monitoring.Messaging;
@@ -31,7 +32,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
         Assert.That(entries.Count(x => x.Value == 10), Is.EqualTo(1), "A reported value should be 10");
     }
 
-    class Context : ScenarioContext
+    public class Context : ScenarioContext
     {
         public TaggedLongValueOccurrence Message { get; set; }
     }
@@ -68,7 +69,7 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
     }
 
 
-    class MonitoringSpy : EndpointConfigurationBuilder
+    public class MonitoringSpy : EndpointConfigurationBuilder
     {
         public MonitoringSpy() =>
             EndpointSetup<DefaultServer>(c =>
@@ -78,7 +79,8 @@ public class When_native_queue_length_is_reported : NServiceBusAcceptanceTest
                 c.LimitMessageProcessingConcurrencyTo(1);
             }).IncludeType<EndpointMetadataReport>().IncludeType<TaggedLongValueOccurrence>();
 
-        class MessageHandler(Context testContext) : IHandleMessages<TaggedLongValueOccurrence>, IHandleMessages<EndpointMetadataReport>
+        [Handler]
+        public class MessageHandler(Context testContext) : IHandleMessages<TaggedLongValueOccurrence>, IHandleMessages<EndpointMetadataReport>
         {
             public Task Handle(TaggedLongValueOccurrence message, IMessageHandlerContext context)
             {

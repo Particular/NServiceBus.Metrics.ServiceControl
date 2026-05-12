@@ -2,7 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using Logging;
@@ -10,24 +10,11 @@
     using Routing;
     using Transport;
 
-    class NServiceBusMetadataReport
+    class MetadataReport(IMessageDispatcher dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
     {
-        public NServiceBusMetadataReport(IMessageDispatcher dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
-        {
-            this.dispatcher = dispatcher;
-            this.headers = headers;
-            this.endpointMetadata = endpointMetadata;
-
-            destination = new UnicastAddressTag(options.ServiceControlMetricsAddress);
-            timeToBeReceived = options.TimeToBeReceived;
-        }
-
         public async Task RunReportAsync(CancellationToken cancellationToken = default)
         {
-            var stringBody = endpointMetadata.ToJson();
-            var body = Encoding.UTF8.GetBytes(stringBody);
-
-            var message = new OutgoingMessage(Guid.NewGuid().ToString(), headers, body);
+            var message = new OutgoingMessage(Guid.NewGuid().ToString(), headers, endpointMetadataBytes);
             var dispatchProperties = new DispatchProperties
             {
                 DiscardIfNotReceivedBefore = new DiscardIfNotReceivedBefore(timeToBeReceived)
@@ -46,12 +33,10 @@
             }
         }
 
-        readonly UnicastAddressTag destination;
-        readonly IMessageDispatcher dispatcher;
-        readonly Dictionary<string, string> headers;
-        readonly EndpointMetadata endpointMetadata;
-        readonly TimeSpan timeToBeReceived;
+        readonly UnicastAddressTag destination = new(options.ServiceControlMetricsAddress);
+        readonly TimeSpan timeToBeReceived = options.TimeToBeReceived;
+        readonly byte[] endpointMetadataBytes = JsonSerializer.SerializeToUtf8Bytes(endpointMetadata, ReportingSerializationContext.Default.EndpointMetadata);
 
-        static readonly ILog Log = LogManager.GetLogger<NServiceBusMetadataReport>();
+        static readonly ILog Log = LogManager.GetLogger<MetadataReport>();
     }
 }
