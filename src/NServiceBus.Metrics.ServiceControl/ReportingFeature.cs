@@ -37,7 +37,7 @@ sealed class ReportingFeature : Feature
             probe.Register((ref e) =>
             {
                 var tag = writer.GetTagId(e.MessageType ?? "");
-                RingBufferExtensions.WriteTaggedValue(buffer, name, (long)e.Duration.TotalMilliseconds, tag);
+                buffer.WriteTaggedValue(name, (long)e.Duration.TotalMilliseconds, tag);
             });
             metrics[name] = Tuple.Create(buffer, writer);
         }
@@ -51,7 +51,7 @@ sealed class ReportingFeature : Feature
             probe.Register((ref SignalEvent e) =>
             {
                 var tag = writer.GetTagId(e.MessageType ?? "");
-                RingBufferExtensions.WriteTaggedValue(buffer, name, 1, tag);
+                buffer.WriteTaggedValue(name, 1, tag);
             });
             metrics[name] = Tuple.Create(buffer, writer);
         }
@@ -197,10 +197,10 @@ sealed class ReportingFeature : Feature
             return Task.CompletedTask;
         }
 
-        protected override Task OnStop(IMessageSession session, CancellationToken cancellationToken = default)
+        protected override async Task OnStop(IMessageSession session, CancellationToken cancellationToken = default)
         {
-            cancellationTokenSource.Cancel();
-            return task;
+            await cancellationTokenSource.CancelAsync().ConfigureAwait(false);
+            await task.ConfigureAwait(false);
         }
 
         readonly CancellationTokenSource cancellationTokenSource = new();

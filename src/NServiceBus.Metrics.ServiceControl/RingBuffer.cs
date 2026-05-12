@@ -12,7 +12,7 @@ sealed class RingBuffer
     long nextToWrite;
     long nextToConsume;
 
-    Entry[] entries = new Entry[Size];
+    readonly Entry[] entries = new Entry[Size];
 
     public struct Entry(long ticks, long value, int tag = 0)
     {

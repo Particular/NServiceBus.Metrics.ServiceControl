@@ -127,12 +127,10 @@ class RawDataReporter : IDisposable
 
     public async Task Stop(CancellationToken cancellationToken = default)
     {
-        stopReporterTokenSource.Cancel();
+        await stopReporterTokenSource.CancelAsync().ConfigureAwait(false);
 
-        using (cancellationToken.Register(() => cancelReportingTokenSource.Cancel()))
-        {
-            await reporter.ConfigureAwait(false);
-        }
+        await using var _ = cancellationToken.Register(() => cancelReportingTokenSource.Cancel()).ConfigureAwait(false);
+        await reporter.ConfigureAwait(false);
     }
 
     public void Dispose()
