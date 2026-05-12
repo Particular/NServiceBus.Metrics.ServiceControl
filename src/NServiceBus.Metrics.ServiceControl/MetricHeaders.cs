@@ -1,8 +1,7 @@
-﻿namespace NServiceBus.Metrics.ServiceControl
+﻿namespace NServiceBus.Metrics.ServiceControl;
+
+static class MetricHeaders
 {
-    static class MetricHeaders
-    {
-        public const string MetricType = "NServiceBus.Metric.Type";
-        public const string MetricInstanceId = "NServiceBus.Metric.InstanceId";
-    }
+    public const string MetricType = "NServiceBus.Metric.Type";
+    public const string MetricInstanceId = "NServiceBus.Metric.InstanceId";
 }

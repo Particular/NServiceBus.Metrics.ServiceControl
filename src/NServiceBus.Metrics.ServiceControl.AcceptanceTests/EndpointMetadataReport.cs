@@ -1,8 +1,7 @@
-﻿namespace NServiceBus.Metrics
+﻿namespace NServiceBus.Metrics;
+
+public class EndpointMetadataReport : IMessage
 {
-    public class EndpointMetadataReport : IMessage
-    {
-        public string LocalAddress { get; set; }
-        public int PluginVersion { get; set; }
-    }
+    public string LocalAddress { get; set; }
+    public int PluginVersion { get; set; }
 }
