@@ -10,18 +10,8 @@
     using Routing;
     using Transport;
 
-    class NServiceBusMetadataReport
+    class MetadataReport(IMessageDispatcher dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
     {
-        public NServiceBusMetadataReport(IMessageDispatcher dispatcher, ReportingOptions options, Dictionary<string, string> headers, EndpointMetadata endpointMetadata)
-        {
-            this.dispatcher = dispatcher;
-            this.headers = headers;
-            this.endpointMetadata = endpointMetadata;
-
-            destination = new UnicastAddressTag(options.ServiceControlMetricsAddress);
-            timeToBeReceived = options.TimeToBeReceived;
-        }
-
         public async Task RunReportAsync(CancellationToken cancellationToken = default)
         {
             var stringBody = endpointMetadata.ToJson();
@@ -46,12 +36,9 @@
             }
         }
 
-        readonly UnicastAddressTag destination;
-        readonly IMessageDispatcher dispatcher;
-        readonly Dictionary<string, string> headers;
-        readonly EndpointMetadata endpointMetadata;
-        readonly TimeSpan timeToBeReceived;
+        readonly UnicastAddressTag destination = new(options.ServiceControlMetricsAddress);
+        readonly TimeSpan timeToBeReceived = options.TimeToBeReceived;
 
-        static readonly ILog Log = LogManager.GetLogger<NServiceBusMetadataReport>();
+        static readonly ILog Log = LogManager.GetLogger<MetadataReport>();
     }
 }

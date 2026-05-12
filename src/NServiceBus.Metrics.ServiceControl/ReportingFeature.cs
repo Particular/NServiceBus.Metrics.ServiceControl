@@ -167,7 +167,7 @@ sealed class ReportingFeature : Feature
 
         protected override Task OnStart(IMessageSession session, CancellationToken cancellationToken = default)
         {
-            var serviceControlReport = new NServiceBusMetadataReport(builder.GetRequiredService<IMessageDispatcher>(), options, headers, endpointMetadata);
+            var serviceControlReport = new MetadataReport(builder.GetRequiredService<IMessageDispatcher>(), options, headers, endpointMetadata);
 
             // CancellationToken.None because otherwise the task simply won't start if the token is canceled
             task = Task.Run(
