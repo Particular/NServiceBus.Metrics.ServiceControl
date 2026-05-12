@@ -64,11 +64,9 @@ public class RingBufferTests
     }
 
     [Test]
-    public void Estimate_just_initialized_ring_size()
-    {
+    public void Estimate_just_initialized_ring_size() =>
         // This test is single threaded so no cross-thread aberrations will be visible.
         Assert.That(ringBuffer.RoughlyEstimateItemsToConsume(), Is.EqualTo(0));
-    }
 
     [Test]
     public void Estimate_empty_ring_size()

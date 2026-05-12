@@ -51,8 +51,5 @@ public class ConventionEnforcementTests : NServiceBusAcceptanceTest
         Assert.That(sagaDatas, Is.Empty, string.Join(",", sagaDatas));
     }
 
-    static bool HasTestMethod(Type t)
-    {
-        return t.GetMethods().Any(m => m.GetCustomAttributes<TestAttribute>().Any());
-    }
+    static bool HasTestMethod(Type t) => t.GetMethods().Any(m => m.GetCustomAttributes<TestAttribute>().Any());
 }

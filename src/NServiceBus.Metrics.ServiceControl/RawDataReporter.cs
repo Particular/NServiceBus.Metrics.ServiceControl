@@ -53,8 +53,7 @@ class RawDataReporter : IDisposable
         cancelReportingTokenSource = new CancellationTokenSource();
     }
 
-    public void Start()
-    {
+    public void Start() =>
         reporter = Task.Run(async () =>
         {
             var consumers = new List<Task>(MaxParallelConsumers + 1);
@@ -101,7 +100,6 @@ class RawDataReporter : IDisposable
                 consumed = buffer.Consume(maxFlushSize, outputWriter);
             }
         });
-    }
 
     Task Consume(CancellationToken cancellationToken)
     {

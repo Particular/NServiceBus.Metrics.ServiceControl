@@ -45,14 +45,12 @@ public class When_reporting_to_ServiceControl : NServiceBusAcceptanceTest
 
     class Sender : EndpointConfigurationBuilder
     {
-        public Sender()
-        {
+        public Sender() =>
             EndpointSetup<DefaultServer>(c =>
             {
                 c.UniquelyIdentifyRunningInstance().UsingCustomIdentifier(HostId);
                 c.EnableMetrics().SendMetricDataToServiceControl(MonitoringSpyAddress, TimeSpan.FromSeconds(1));
             });
-        }
     }
 
     public class MonitoringSpy : EndpointConfigurationBuilder
